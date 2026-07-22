@@ -1,66 +1,37 @@
-# Drukulator 0.1.8v — GitHub Pages
+# Drukulator 0.1.8v - GitHub Pages
 
-Statyczna wersja kalkulatora Druk24. Nie wymaga Pythona ani Streamlit — działa w całości w przeglądarce.
+A static version of the Druk24 calculator. It doesn't require Python or Streamlit—it runs entirely in the browser.
 
-## Publikacja na GitHub Pages
+## Changing Prices
 
-1. Utwórz nowe repozytorium na GitHubie, np. `drukulator`.
-2. Wgraj **zawartość tego folderu** do głównego katalogu repozytorium. Plik `index.html` ma znajdować się bezpośrednio w katalogu głównym.
-3. Otwórz repozytorium i przejdź do **Settings → Pages**.
-4. W sekcji **Build and deployment** wybierz:
-   - **Source:** `Deploy from a branch`
-   - **Branch:** `main`
-   - **Folder:** `/ (root)`
-5. Kliknij **Save**.
-6. Po publikacji strona będzie dostępna pod adresem zbliżonym do:
-   `https://NAZWA-UZYTKOWNIKA.github.io/drukulator/`
-
-## Lokalny test
-
-Nie otwieraj `index.html` bezpośrednio dwuklikiem, ponieważ przeglądarka może zablokować odczyt `data/prices.json`.
-
-W katalogu projektu uruchom:
-
-```bash
-python -m http.server 8000
-```
-
-Następnie otwórz:
-
-```text
-http://localhost:8000
-```
-
-## Zmiana cen
-
-Wszystkie ceny znajdują się w:
+All prices are located in:
 
 ```text
 data/prices.json
 ```
 
-Po zmianie cennika zapisz plik i wypchnij aktualizację do repozytorium. GitHub Pages opublikuje nową wersję.
+After changing the price list, save the file and push the update to the repository.
 
-## Co zostało przeniesione ze Streamlit
+## What was transferred from Python
 
-- wizytówki,
-- ulotki,
-- folie i banery z progami cenowymi,
-- naklejki z wymiarami w mm,
-- plakaty,
-- roll-up i X-baner,
+- business cards,
+- flyers,
+- foils and banners with price thresholds,
+- stickers with dimensions in mm,
+- posters,
+- roll-ups and X-banners,
 - PVC,
-- druk cyfrowy, ksero i skanowanie,
-- koszulki i odzież,
-- druk i oprawa prac,
-- laminowanie,
-- obrazy na płótnie z analizą proporcji zdjęcia,
-- koszyk,
-- eksport CSV,
-- formularz zamówienia i kopiowanie treści maila.
+- digital printing, photocopying, and scanning,
+- T-shirts and clothing,
+- printing and framing,
+- laminating,
+- canvas prints with image aspect ratio analysis,
+- shopping cart,
+- CSV export,
+- order form and email content copying.
 
-## Ważne ograniczenia
+## Important Limitations
 
-GitHub Pages jest hostingiem statycznym. Projekt nie wysyła zamówień, plików ani danych klientów na serwer. Formularz tworzy wyłącznie tekst do ręcznego skopiowania.
+GitHub Pages is a static hosting service. The project does not send orders, files, or customer data to the server. The form only creates text for manual copying.
 
-Do docelowej, komercyjnej strony firmowej lepszy będzie własny hosting, Cloudflare Pages albo inna usługa przeznaczona do stron biznesowych. GitHub Pages warto traktować jako wersję testową lub demonstracyjną.
+For a targeted, commercial company website, your own hosting, Cloudflare Pages, or another service designed for business websites is better. GitHub Pages should be considered a test or demo version.
