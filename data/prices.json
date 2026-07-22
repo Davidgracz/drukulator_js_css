@@ -378,13 +378,57 @@
     },
     "naklejki": {
         "powierzchniowe": {
-            "Wlepki": {
-                "cena_m2": 100,
-                "minimum_m2": 1.0
+            "Naklejki, etykiety": {
+                "cena_m2": 100.0,
+                "minimum_m2": 1.0,
+                "progi_cenowe_mb": [
+                    {
+                        "maks_mb": 5.0,
+                        "cena_mb": 100.0
+                    },
+                    {
+                        "maks_mb": 10.0,
+                        "cena_mb": 95.0
+                    },
+                    {
+                        "maks_mb": 25.0,
+                        "cena_mb": 90.0
+                    },
+                    {
+                        "maks_mb": 50.0,
+                        "cena_mb": 85.0
+                    },
+                    {
+                        "maks_mb": null,
+                        "cena_mb": 80.0
+                    }
+                ]
             },
-            "Wlepki laminowane": {
-                "cena_m2": 130,
-                "minimum_m2": 1.0
+            "Naklejki laminowane": {
+                "cena_m2": 120.0,
+                "minimum_m2": 1.0,
+                "progi_cenowe_mb": [
+                    {
+                        "maks_mb": 5.0,
+                        "cena_mb": 120.0
+                    },
+                    {
+                        "maks_mb": 10.0,
+                        "cena_mb": 115.0
+                    },
+                    {
+                        "maks_mb": 25.0,
+                        "cena_mb": 110.0
+                    },
+                    {
+                        "maks_mb": 50.0,
+                        "cena_mb": 105.0
+                    },
+                    {
+                        "maks_mb": null,
+                        "cena_mb": 100.0
+                    }
+                ]
             },
             "Magnesy reklamowe": {
                 "cena_m2": 160,

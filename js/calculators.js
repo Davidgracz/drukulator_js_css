@@ -64,6 +64,17 @@
     return Math.ceil((Number(value) / Number(step)) - 1e-9) * Number(step);
   }
 
+  function getStickerPricePerLinearMeter(billedLengthM, productData) {
+    assertPositive(billedLengthM, "Długość rozliczeniowa");
+    const tiers = productData.progi_cenowe_mb || [];
+    for (const tier of tiers) {
+      if (tier.maks_mb == null || billedLengthM <= Number(tier.maks_mb)) {
+        return Number(tier.cena_mb);
+      }
+    }
+    return Number(productData.cena_m2);
+  }
+
   function calculateStickers(prices, productType, quantity, widthMm, heightMm) {
     assertPositive(quantity, "Ilość");
     const data = prices.naklejki;
@@ -90,7 +101,7 @@
       const minimumLengthM = minimumM2 / rollWidthM;
       const requiredLengthM = Math.max(baseLengthM, minimumLengthM);
       const billedLengthM = roundUpToStep(requiredLengthM, 0.1);
-      const pricePerLinearMeter = Number(product.cena_m2);
+      const pricePerLinearMeter = getStickerPricePerLinearMeter(billedLengthM, product);
       return {
         price: round2(billedLengthM * pricePerLinearMeter),
         pricePerLinearMeter,
@@ -322,7 +333,8 @@
 
   global.Calculators = {
     NO_PRINT, DIGITAL_FINISH_KEYS, OFFSET_FINISH_KEYS,
-    getBannerPricePerM2, calculateBanner, calculateBusinessCards, calculateFlyers, calculateStickers,
+    getBannerPricePerM2, calculateBanner, calculateBusinessCards, calculateFlyers,
+    getStickerPricePerLinearMeter, calculateStickers,
     calculatePosters, calculateRollup, calculatePvc, calculateDigital, calculateApparel, calculateWorkBinding,
     calculateLamination, getCanvasSuggestions, calculateProportionalCanvasSize, calculateCanvasStandard, calculateCanvasCustom,
     getQuantityTier, roundUpToStep

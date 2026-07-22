@@ -210,7 +210,7 @@
   function renderStickers() {
     const root = state.prices.naklejki;
     const products = [...Object.keys(root.powierzchniowe), ...Object.keys(root.taxi)];
-    content.innerHTML = `${header("Naklejki")}<div class="card"><div class="form-grid">
+    content.innerHTML = `${header("Naklejki i etykiety")}<div class="card"><div class="form-grid">
       <div class="field"><label>Rodzaj produktu</label><select id="stickProduct">${options(products)}</select></div>
       <div id="stickSurfaceFields" class="field" style="display:contents">
         <div class="field third"><label>Szerokość jednej sztuki [mm]</label><input id="stickWidth" type="number" min="0.1" step="1" value="100"></div>
@@ -224,7 +224,27 @@
       const surface = Object.prototype.hasOwnProperty.call(root.powierzchniowe, product.value);
       document.getElementById("stickSurfaceFields").classList.toggle("hidden", !surface);
       document.getElementById("stickTaxiFields").classList.toggle("hidden", surface);
-      document.getElementById("stickInfo").innerHTML = surface ? alertBox(`Minimalne zamówienie: ${num(root.powierzchniowe[product.value].minimum_m2, 1)} mb. Szerokość folii: 1000 mm. Do wymiaru produkcyjnego dodawane są 3 mm.`, "info") : "";
+      if (!surface) {
+        document.getElementById("stickInfo").innerHTML = "";
+        return;
+      }
+
+      const productData = root.powierzchniowe[product.value];
+      const tiers = productData.progi_cenowe_mb || [];
+      let previous = 0;
+      const tierTable = tiers.length ? `<details><summary>Progi cenowe</summary><table class="tier-table"><thead><tr><th>Długość rozliczeniowa</th><th>Cena</th></tr></thead><tbody>${tiers.map(tier => {
+        const label = tier.maks_mb == null
+          ? `powyżej ${previous} mb`
+          : previous === 0
+            ? `do ${tier.maks_mb} mb`
+            : `powyżej ${previous} do ${tier.maks_mb} mb`;
+        previous = tier.maks_mb ?? previous;
+        return `<tr><td>${label}</td><td>${money(tier.cena_mb)} zł/mb</td></tr>`;
+      }).join("")}</tbody></table></details>` : "";
+
+      document.getElementById("stickInfo").innerHTML =
+        alertBox(`Minimalne zamówienie: ${num(productData.minimum_m2, 1)} mb. Szerokość folii: 1000 mm. Do wymiaru produkcyjnego dodawane są 3 mm.`, "info") +
+        tierTable;
     }
     product.addEventListener("change", refresh); refresh();
     document.getElementById("calculate").addEventListener("click", () => { try {
