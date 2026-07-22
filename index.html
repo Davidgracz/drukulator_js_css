@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1120">
+  <meta name="description" content="Kalkulator cen druku Druk24">
+  <title>Drukulator — Kalkulator Druku</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <noscript>Ta aplikacja wymaga włączonego JavaScript.</noscript>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-icon">🖨️</div>
+        <div>
+          <h1>Drukulator</h1>
+          <p id="versionLabel">0.1.8v — GitHub Pages</p>
+        </div>
+      </div>
+      <nav id="navigation" class="navigation" aria-label="Produkty"></nav>
+      <div class="sidebar-footer">
+        <a class="button secondary" href="data/prices.json" download>Pobierz prices.json</a>
+      </div>
+    </aside>
+
+    <button id="menuToggle" class="menu-toggle" aria-label="Otwórz menu">☰</button>
+
+    <main class="workspace">
+      <section class="content" id="content" aria-live="polite"></section>
+      <aside class="cart-panel" id="cartPanel"></aside>
+    </main>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="js/calculators.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
