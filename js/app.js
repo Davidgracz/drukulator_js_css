@@ -1,17 +1,23 @@
 (function () {
   "use strict";
 
-  const VERSION = "0.1.8v — GitHub Pages";
+  const VERSION = "0.2.0v — GitHub Pages";
   const C = window.Calculators;
   const content = document.getElementById("content");
   const navigation = document.getElementById("navigation");
   const cartPanel = document.getElementById("cartPanel");
   const toast = document.getElementById("toast");
   const sidebar = document.getElementById("sidebar");
+  const downloadPricesButton = document.getElementById("downloadPrices");
+  const PRICE_OVERRIDE_KEY = "drukulator_prices_override";
+  const ADMIN_SESSION_KEY = "drukulator_admin_unlocked";
+  const ADMIN_PASSWORD_HASH = "76ec9956";
 
   const state = {
+    basePrices: null,
     prices: null,
     page: "Start",
+    adminUnlocked: loadSessionFlag(ADMIN_SESSION_KEY),
     cart: loadJson("drukulator_cart", []),
     order: loadJson("drukulator_order", {
       name: "", email: "", phone: "", pickup: "Odbiór osobisty", notes: ""
@@ -31,11 +37,13 @@
     ["Koszulki i odzież", renderApparel],
     ["Oprawa prac", renderBinding],
     ["Laminowanie", renderLamination],
-    ["Obrazy na płótnie", renderCanvas]
+    ["Obrazy na płótnie", renderCanvas],
+    ["Edycja cen", renderPriceAdmin]
   ];
 
   document.getElementById("versionLabel").textContent = VERSION;
   document.getElementById("menuToggle").addEventListener("click", () => sidebar.classList.toggle("open"));
+  downloadPricesButton.addEventListener("click", downloadPricesJson);
 
   boot();
 
@@ -43,7 +51,11 @@
     try {
       const response = await fetch("data/prices.json", { cache: "no-store" });
       if (!response.ok) throw new Error(`Błąd pobierania cennika: HTTP ${response.status}`);
-      state.prices = await response.json();
+      state.basePrices = await response.json();
+      const savedPrices = loadJson(PRICE_OVERRIDE_KEY, null);
+      state.prices = isValidPriceFile(savedPrices) ? savedPrices : deepClone(state.basePrices);
+      if (savedPrices && !isValidPriceFile(savedPrices)) localStorage.removeItem(PRICE_OVERRIDE_KEY);
+      downloadPricesButton.disabled = false;
       renderNavigation();
       renderCurrentPage();
       renderCart();
@@ -54,6 +66,15 @@
 
   function loadJson(key, fallback) {
     try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
+  }
+  function loadSessionFlag(key) {
+    try { return sessionStorage.getItem(key) === "1"; } catch { return false; }
+  }
+  function deepClone(value) {
+    return JSON.parse(JSON.stringify(value));
+  }
+  function isValidPriceFile(value) {
+    return Boolean(value && typeof value === "object" && value.banery && value.naklejki && value.druk_cyfrowy_i_ksero);
   }
   function saveState() {
     try {
@@ -90,7 +111,7 @@
   }
 
   function renderNavigation() {
-    navigation.innerHTML = pages.map(([name]) => `<button class="nav-button${name === state.page ? " active" : ""}" data-page="${esc(name)}">${esc(name)}</button>`).join("");
+    navigation.innerHTML = pages.map(([name]) => `<button class="nav-button${name === state.page ? " active" : ""}${name === "Edycja cen" ? " admin-nav" : ""}" data-page="${esc(name)}">${esc(name)}</button>`).join("");
     navigation.querySelectorAll("[data-page]").forEach(button => button.addEventListener("click", () => {
       state.page = button.dataset.page;
       renderNavigation(); renderCurrentPage(); sidebar.classList.remove("open");
@@ -130,6 +151,262 @@
         </div>
         ${alertBox("Dane wpisywane do formularza zamówienia nie są wysyłane na serwer. Tekst jest tworzony wyłącznie w Twojej przeglądarce.", "info")}
       </div>`;
+  }
+
+  function renderPriceAdmin() {
+    if (!state.adminUnlocked) {
+      renderPriceAdminLogin();
+      return;
+    }
+
+    const hasOverride = Boolean(loadJson(PRICE_OVERRIDE_KEY, null));
+    content.innerHTML = `${header("Edycja cen", "Zmiany są stosowane natychmiast w tej przeglądarce")}
+      <div class="card admin-toolbar">
+        ${alertBox("Panel na GitHub Pages zapisuje ceny lokalnie. Aby opublikować je dla wszystkich, pobierz nowy prices.json i podmień plik data/prices.json w repozytorium.", "info")}
+        <div class="admin-status-row">
+          <span class="status-dot ${hasOverride ? "active" : ""}"></span>
+          <strong id="adminPriceStatus">${hasOverride ? "Używane są ceny zapisane w tej przeglądarce" : "Używane są ceny z repozytorium"}</strong>
+        </div>
+        <div class="field admin-search"><label>Wyszukaj kategorię lub cenę</label><input id="adminSearch" type="search" placeholder="np. baner, A4, laminat, wizytówki"></div>
+        <div class="actions admin-actions">
+          <button class="button" id="saveAdminPrices" type="button">Zapisz i zastosuj</button>
+          <button class="button secondary" id="downloadAdminPrices" type="button">Pobierz prices.json</button>
+          <label class="button secondary admin-file-button">Wczytaj prices.json<input id="importAdminPrices" type="file" accept="application/json,.json"></label>
+          <button class="button secondary" id="resetAdminPrices" type="button">Przywróć ceny z GitHub</button>
+          <button class="button danger" id="lockAdmin" type="button">Zablokuj panel</button>
+        </div>
+      </div>
+      <div id="adminMessage"></div>
+      <div id="priceEditor" class="price-editor">${buildPriceEditor(state.prices)}</div>`;
+
+    document.getElementById("adminSearch").addEventListener("input", event => filterPriceEditor(event.target.value));
+    document.getElementById("saveAdminPrices").addEventListener("click", saveAdminPrices);
+    document.getElementById("downloadAdminPrices").addEventListener("click", downloadPricesJson);
+    document.getElementById("importAdminPrices").addEventListener("change", importAdminPrices);
+    document.getElementById("resetAdminPrices").addEventListener("click", resetAdminPrices);
+    document.getElementById("lockAdmin").addEventListener("click", lockPriceAdmin);
+  }
+
+  function renderPriceAdminLogin() {
+    content.innerHTML = `${header("Edycja cen", "Panel administracyjny")}
+      <div class="card admin-login-card">
+        <form id="adminLoginForm">
+          <div class="field"><label>Hasło</label><input id="adminPassword" type="password" autocomplete="current-password" required autofocus></div>
+          <div class="actions"><button class="button full" type="submit">Otwórz edycję cen</button></div>
+        </form>
+        <div id="adminLoginMessage"></div>
+        <p class="muted admin-security-note">To zabezpieczenie chroni panel przed przypadkową edycją. GitHub Pages jest stroną statyczną, więc nie zastępuje pełnego logowania serwerowego.</p>
+      </div>`;
+
+    document.getElementById("adminLoginForm").addEventListener("submit", async event => {
+      event.preventDefault();
+      const message = document.getElementById("adminLoginMessage");
+      try {
+        const passwordHash = hashPassword(value("adminPassword"));
+        if (passwordHash !== ADMIN_PASSWORD_HASH) {
+          message.innerHTML = alertBox("Nieprawidłowe hasło.", "error");
+          document.getElementById("adminPassword").select();
+          return;
+        }
+        state.adminUnlocked = true;
+        try { sessionStorage.setItem(ADMIN_SESSION_KEY, "1"); } catch {}
+        renderPriceAdmin();
+      } catch (error) {
+        message.innerHTML = alertBox(error.message || String(error), "error");
+      }
+    });
+  }
+
+  function buildPriceEditor(prices) {
+    const fields = [];
+    collectNumericFields(prices, [], fields);
+    const groups = new Map();
+    fields.forEach(field => {
+      const category = String(field.path[0]);
+      if (!groups.has(category)) groups.set(category, []);
+      groups.get(category).push(field);
+    });
+
+    return Array.from(groups.entries()).map(([category, categoryFields], index) => {
+      const rows = categoryFields.map(field => {
+        const contextParts = field.path.slice(1, -1).map((part, partIndex) => humanizePathPart(part, field.path[partIndex]));
+        const label = humanizePathPart(field.path[field.path.length - 1], field.path[field.path.length - 2]);
+        const pathJson = JSON.stringify(field.path);
+        const searchText = `${categoryLabel(category)} ${contextParts.join(" ")} ${label}`.toLocaleLowerCase("pl-PL");
+        return `<div class="admin-price-field" data-search="${esc(searchText)}">
+          <label>${esc(label)}</label>
+          <input type="number" step="0.01" data-price-path="${esc(pathJson)}" value="${esc(field.value)}">
+          <small>${esc(contextParts.join(" / ") || categoryLabel(category))}</small>
+        </div>`;
+      }).join("");
+      return `<details class="admin-category"${index === 0 ? " open" : ""}>
+        <summary><span>${esc(categoryLabel(category))}</span><span class="admin-count">${categoryFields.length}</span></summary>
+        <div class="admin-price-grid">${rows}</div>
+      </details>`;
+    }).join("");
+  }
+
+  function collectNumericFields(valueToCheck, path, result) {
+    if (Array.isArray(valueToCheck)) {
+      valueToCheck.forEach((item, index) => collectNumericFields(item, [...path, index], result));
+      return;
+    }
+    if (valueToCheck && typeof valueToCheck === "object") {
+      Object.entries(valueToCheck).forEach(([key, item]) => collectNumericFields(item, [...path, key], result));
+      return;
+    }
+    if (typeof valueToCheck === "number" && Number.isFinite(valueToCheck)) result.push({ path, value: valueToCheck });
+  }
+
+  function categoryLabel(category) {
+    const labels = {
+      meta: "Ustawienia ogólne",
+      banery: "Folie i banery",
+      pvc: "Druk na PCV",
+      wizytowki: "Wizytówki",
+      papier_firmowy: "Papier firmowy",
+      rollup: "Roll-up i X-baner",
+      ulotki: "Ulotki",
+      plakaty: "Plakaty",
+      naklejki: "Naklejki i etykiety",
+      druk_cyfrowy_i_ksero: "Druk cyfrowy i ksero",
+      odziez_z_nadrukiem: "Koszulki i odzież",
+      oprawa_prac: "Oprawa prac",
+      laminowanie: "Laminowanie",
+      obrazy_na_plotnie: "Obrazy na płótnie"
+    };
+    return labels[category] || humanizeText(category);
+  }
+
+  function humanizePathPart(part, parent) {
+    if (typeof part === "number") {
+      if (parent === "progi_cenowe" || parent === "progi_cenowe_mb") return `Próg ${part + 1}`;
+      return `Pozycja ${part + 1}`;
+    }
+    const labels = {
+      cena_m2: "Cena za m²",
+      cena_mb: "Cena za mb",
+      cena_sztuki: "Cena za sztukę",
+      minimum_zamowienia: "Minimum zamówienia",
+      minimum_m2: "Minimalna długość / powierzchnia",
+      maks_m2: "Górna granica m²",
+      maks_mb: "Górna granica mb",
+      vat: "VAT [%]",
+      folia_mikrony: "Grubość folii [µm]",
+      maksymalny_bok_cm: "Maksymalny bok [cm]",
+      od_10_sztuk: "Rabat od 10 sztuk [%]",
+      powyzej_20_sztuk: "Rabat powyżej 20 sztuk [%]",
+      cena_za_m2: "Cena za m²",
+      cena_m2_obrazu: "Cena za m² obrazu",
+      doplaty_do_papieru: "Dopłaty do papieru",
+      mnozniki_formatu: "Mnożniki formatu",
+      mnozniki_zadruku: "Mnożniki zadruku",
+      progi_cenowe: "Progi cenowe",
+      progi_cenowe_mb: "Progi cenowe mb",
+      formaty: "Formaty",
+      rodzaje_opraw: "Rodzaje opraw",
+      produkty: "Produkty",
+      ceny: "Ceny"
+    };
+    return labels[part] || humanizeText(part);
+  }
+
+  function humanizeText(valueToFormat) {
+    const text = String(valueToFormat).replaceAll("_", " ");
+    return text.charAt(0).toLocaleUpperCase("pl-PL") + text.slice(1);
+  }
+
+  function filterPriceEditor(query) {
+    const normalized = String(query || "").trim().toLocaleLowerCase("pl-PL");
+    document.querySelectorAll(".admin-price-field").forEach(field => {
+      field.classList.toggle("filtered-out", normalized && !field.dataset.search.includes(normalized));
+    });
+    document.querySelectorAll(".admin-category").forEach(category => {
+      const visible = category.querySelector(".admin-price-field:not(.filtered-out)");
+      category.classList.toggle("filtered-out", !visible);
+      if (normalized && visible) category.open = true;
+    });
+  }
+
+  function readPricesFromEditor() {
+    const updatedPrices = deepClone(state.prices);
+    document.querySelectorAll("[data-price-path]").forEach(input => {
+      const parsed = Number(input.value);
+      if (!Number.isFinite(parsed)) throw new Error(`Nieprawidłowa wartość w polu: ${input.closest(".admin-price-field").querySelector("label").textContent}`);
+      setValueAtPath(updatedPrices, JSON.parse(input.dataset.pricePath), parsed);
+    });
+    return updatedPrices;
+  }
+
+  function setValueAtPath(target, path, newValue) {
+    let current = target;
+    for (let index = 0; index < path.length - 1; index += 1) current = current[path[index]];
+    current[path[path.length - 1]] = newValue;
+  }
+
+  function saveAdminPrices() {
+    const message = document.getElementById("adminMessage");
+    try {
+      state.prices = readPricesFromEditor();
+      localStorage.setItem(PRICE_OVERRIDE_KEY, JSON.stringify(state.prices));
+      document.getElementById("adminPriceStatus").textContent = "Używane są ceny zapisane w tej przeglądarce";
+      document.querySelector(".status-dot").classList.add("active");
+      message.innerHTML = alertBox("Ceny zostały zapisane i są już używane przez kalkulator.", "success");
+      showToast("Zapisano ceny");
+    } catch (error) {
+      message.innerHTML = alertBox(error.message || String(error), "error");
+    }
+  }
+
+  function downloadPricesJson() {
+    if (!state.prices) return;
+    const data = JSON.stringify(state.prices, null, 2);
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(new Blob([data], { type: "application/json;charset=utf-8" }));
+    link.download = "prices.json";
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+
+  async function importAdminPrices(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const message = document.getElementById("adminMessage");
+    try {
+      const imported = JSON.parse(await file.text());
+      if (!isValidPriceFile(imported)) throw new Error("Wybrany plik nie ma prawidłowej struktury cennika.");
+      state.prices = imported;
+      localStorage.setItem(PRICE_OVERRIDE_KEY, JSON.stringify(state.prices));
+      renderPriceAdmin();
+      showToast("Wczytano prices.json");
+    } catch (error) {
+      message.innerHTML = alertBox(error.message || String(error), "error");
+      event.target.value = "";
+    }
+  }
+
+  function resetAdminPrices() {
+    if (!window.confirm("Przywrócić ceny zapisane w pliku data/prices.json?")) return;
+    localStorage.removeItem(PRICE_OVERRIDE_KEY);
+    state.prices = deepClone(state.basePrices);
+    renderPriceAdmin();
+    showToast("Przywrócono ceny z GitHub");
+  }
+
+  function lockPriceAdmin() {
+    state.adminUnlocked = false;
+    try { sessionStorage.removeItem(ADMIN_SESSION_KEY); } catch {}
+    renderPriceAdmin();
+  }
+
+  function hashPassword(text) {
+    let hash = 0x811c9dc5;
+    const valueToHash = String(text);
+    for (let index = 0; index < valueToHash.length; index += 1) {
+      hash ^= valueToHash.charCodeAt(index);
+      hash = Math.imul(hash, 0x01000193);
+    }
+    return (hash >>> 0).toString(16).padStart(8, "0");
   }
 
   function renderBusinessCards() {
