@@ -1,4 +1,4 @@
-# Drukulator 0.1.8v - GitHub Pages
+# Drukulator - GitHub Pages
 
 A static version of the Druk24 calculator. It doesn't require Python or Streamlit—it runs entirely in the browser.
 
