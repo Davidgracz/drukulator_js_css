@@ -194,31 +194,39 @@
     ],
     "cyfrowe": {
       "standard": {
+        "50": {
+          "jednostronne": 50,
+          "dwustronne": 60
+        },
         "100": {
-          "jednostronne": 80,
-          "dwustronne": 100
+          "jednostronne": 70,
+          "dwustronne": 80
         },
         "200": {
           "jednostronne": 110,
-          "dwustronne": 165
+          "dwustronne": 130
         },
         "500": {
-          "jednostronne": 220,
-          "dwustronne": 310
+          "jednostronne": 200,
+          "dwustronne": 240
         }
       },
       "folia_soft_touch_lub_blysk": {
+        "50": {
+          "jednostronne": 70,
+          "dwustronne": 80
+        },
         "100": {
-          "jednostronne": 120,
-          "dwustronne": 145
+          "jednostronne": 110,
+          "dwustronne": 120
         },
         "200": {
-          "jednostronne": 175,
-          "dwustronne": 230
+          "jednostronne": 140,
+          "dwustronne": 180
         },
         "500": {
-          "jednostronne": 350,
-          "dwustronne": 440
+          "jednostronne": 260,
+          "dwustronne": 290
         }
       }
     },

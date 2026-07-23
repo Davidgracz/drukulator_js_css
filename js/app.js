@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const VERSION = "0.3.0v — GitHub Pages";
+  const VERSION = "0.3.1v — GitHub Pages";
   const C = window.Calculators;
   const content = document.getElementById("content");
   const navigation = document.getElementById("navigation");
@@ -9,7 +9,7 @@
   const toast = document.getElementById("toast");
   const sidebar = document.getElementById("sidebar");
   const downloadPricesButton = document.getElementById("downloadPrices");
-  const PRICE_OVERRIDE_KEY = "drukulator_prices_override_0_3_0";
+  const PRICE_OVERRIDE_KEY = "drukulator_prices_override_0_3_1";
   const ADMIN_SESSION_KEY = "drukulator_admin_unlocked";
   const ADMIN_PASSWORD_HASH = "76ec9956";
 
@@ -418,14 +418,14 @@
     const p = state.prices.wizytowki;
     content.innerHTML = `${header("Wizytówki")}<div class="card"><div class="form-grid">
       <div class="field half"><label>Format</label><select id="bcFormat">${options(p.formaty)}</select></div>
-      <div class="field half"><label>Rodzaj druku</label><select id="bcPrint">${options(["Cyfrowy", "Offsetowy"])}</select></div>
+      <div class="field half"><label>Rodzaj druku</label><select id="bcPrint">${options(["Cyfrowy 24h", "Offsetowy"])}</select></div>
       <div class="field half"><label>Wykończenie</label><select id="bcFinish"></select></div>
       <div class="field half"><label>Zadruk</label><select id="bcSides"></select></div>
       <div class="field"><label>Nakład</label><select id="bcQuantity"></select></div>
     </div><div class="actions"><button class="button" id="calculate">Oblicz cenę</button></div></div><div id="quoteArea"></div>`;
     const print = document.getElementById("bcPrint"), finish = document.getElementById("bcFinish"), sides = document.getElementById("bcSides"), qty = document.getElementById("bcQuantity");
     function refresh() {
-      if (print.value === "Cyfrowy") {
+      if (print.value === "Cyfrowy 24h") {
         finish.innerHTML = options(Object.keys(C.DIGITAL_FINISH_KEYS)); sides.innerHTML = options(["Jednostronne", "Dwustronne"]); sides.disabled = false;
         qty.innerHTML = options(Object.keys(p.cyfrowe[C.DIGITAL_FINISH_KEYS[finish.value]]));
       } else {
@@ -434,7 +434,7 @@
       }
     }
     print.addEventListener("change", refresh); finish.addEventListener("change", () => {
-      const root = print.value === "Cyfrowy" ? p.cyfrowe[C.DIGITAL_FINISH_KEYS[finish.value]] : p.offsetowe[C.OFFSET_FINISH_KEYS[finish.value]];
+      const root = print.value === "Cyfrowy 24h" ? p.cyfrowe[C.DIGITAL_FINISH_KEYS[finish.value]] : p.offsetowe[C.OFFSET_FINISH_KEYS[finish.value]];
       qty.innerHTML = options(Object.keys(root));
     }); refresh();
     document.getElementById("calculate").addEventListener("click", () => { try {

@@ -47,7 +47,7 @@
   function calculateBusinessCards(prices, printType, finish, quantity, sides) {
     const q = String(quantity);
     let value;
-    if (printType === "Cyfrowy") {
+    if (printType === "Cyfrowy 24h") {
       value = prices.wizytowki.cyfrowe[DIGITAL_FINISH_KEYS[finish]][q][SIDE_KEYS[sides]];
     } else if (printType === "Offsetowy") {
       value = prices.wizytowki.offsetowe[OFFSET_FINISH_KEYS[finish]][q];
