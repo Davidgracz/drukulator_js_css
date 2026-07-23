@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const VERSION = "0.3.1v — GitHub Pages";
+  const VERSION = "0.4.0v";
   const C = window.Calculators;
   const content = document.getElementById("content");
   const navigation = document.getElementById("navigation");
@@ -9,7 +9,10 @@
   const toast = document.getElementById("toast");
   const sidebar = document.getElementById("sidebar");
   const downloadPricesButton = document.getElementById("downloadPrices");
-  const PRICE_OVERRIDE_KEY = "drukulator_prices_override_0_3_1";
+  const siteMenuToggle = document.getElementById("siteMenuToggle");
+  const siteNavigation = document.getElementById("siteNavigation");
+  const PRICE_OVERRIDE_KEY = "drukulator_prices_override_0_4_0";
+  const LEGACY_PRICE_OVERRIDE_KEYS = ["drukulator_prices_override_0_3_1", "drukulator_prices_override_0_3_0"];
   const ADMIN_SESSION_KEY = "drukulator_admin_unlocked";
   const ADMIN_PASSWORD_HASH = "76ec9956";
 
@@ -43,6 +46,27 @@
 
   document.getElementById("versionLabel").textContent = VERSION;
   document.getElementById("menuToggle").addEventListener("click", () => sidebar.classList.toggle("open"));
+  if (siteMenuToggle && siteNavigation) {
+    siteMenuToggle.addEventListener("click", () => {
+      const isOpen = siteNavigation.classList.toggle("is-open");
+      siteMenuToggle.classList.toggle("is-open", isOpen);
+      siteMenuToggle.setAttribute("aria-expanded", String(isOpen));
+    });
+
+    siteNavigation.addEventListener("click", event => {
+      if (!event.target.closest("a")) return;
+      siteNavigation.classList.remove("is-open");
+      siteMenuToggle.classList.remove("is-open");
+      siteMenuToggle.setAttribute("aria-expanded", "false");
+    });
+
+    document.addEventListener("click", event => {
+      if (siteNavigation.contains(event.target) || siteMenuToggle.contains(event.target)) return;
+      siteNavigation.classList.remove("is-open");
+      siteMenuToggle.classList.remove("is-open");
+      siteMenuToggle.setAttribute("aria-expanded", "false");
+    });
+  }
   downloadPricesButton.addEventListener("click", downloadPricesJson);
 
   boot();
@@ -52,9 +76,8 @@
       const response = await fetch("data/prices.json", { cache: "no-store" });
       if (!response.ok) throw new Error(`Błąd pobierania cennika: HTTP ${response.status}`);
       state.basePrices = await response.json();
-      const savedPrices = loadJson(PRICE_OVERRIDE_KEY, null);
-      state.prices = isValidPriceFile(savedPrices) ? savedPrices : deepClone(state.basePrices);
-      if (savedPrices && !isValidPriceFile(savedPrices)) localStorage.removeItem(PRICE_OVERRIDE_KEY);
+      const savedPrices = loadSavedPrices();
+      state.prices = savedPrices ? savedPrices : deepClone(state.basePrices);
       downloadPricesButton.disabled = false;
       renderNavigation();
       renderCurrentPage();
@@ -66,6 +89,30 @@
 
   function loadJson(key, fallback) {
     try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
+  }
+  function loadSavedPrices() {
+    const keys = [PRICE_OVERRIDE_KEY, ...LEGACY_PRICE_OVERRIDE_KEYS];
+
+    for (const key of keys) {
+      const saved = loadJson(key, null);
+
+      if (isValidPriceFile(saved)) {
+        if (key !== PRICE_OVERRIDE_KEY) {
+          try {
+            localStorage.setItem(PRICE_OVERRIDE_KEY, JSON.stringify(saved));
+          } catch {
+            // Zapis lokalny jest opcjonalny.
+          }
+        }
+        return saved;
+      }
+
+      if (saved) {
+        try { localStorage.removeItem(key); } catch {}
+      }
+    }
+
+    return null;
   }
   function loadSessionFlag(key) {
     try { return sessionStorage.getItem(key) === "1"; } catch { return false; }
@@ -141,7 +188,7 @@
   }
 
   function renderHome() {
-    content.innerHTML = `${header("Kalkulator Druku", "Wersja statyczna działająca na GitHub Pages")}
+    content.innerHTML = `${header("Kalkulator Druku", "Wersja statyczna działająca na HTTP")}
       <div class="card">
         <p>Wybierz produkt z menu. Wszystkie obliczenia wykonywane są lokalnie w przeglądarce, na podstawie pliku <code>data/prices.json</code>.</p>
         <div class="metrics">
@@ -395,7 +442,7 @@
     localStorage.removeItem(PRICE_OVERRIDE_KEY);
     state.prices = deepClone(state.basePrices);
     renderPriceAdmin();
-    showToast("Przywrócono ceny z GitHub");
+    showToast("Przywrócono ceny z serwera");
   }
 
   function lockPriceAdmin() {

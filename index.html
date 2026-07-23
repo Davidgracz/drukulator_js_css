@@ -3,20 +3,52 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0b1120">
+  <meta name="theme-color" content="#ffffff">
   <meta name="description" content="Kalkulator cen druku Druk24">
   <title>Drukulator — Kalkulator Druku</title>
-  <link rel="stylesheet" href="assets/styles.css?v=0.3.0">
+  <link rel="stylesheet" href="assets/styles.css?v=0.4.0">
 </head>
 <body>
+  <a class="skip-link" href="#content">Przejdź do kalkulatora</a>
   <noscript>Ta aplikacja wymaga włączonego JavaScript.</noscript>
+
+  <header class="druk24-site-header">
+    <div class="druk24-site-header__inner">
+      <a class="druk24-site-logo" href="/" aria-label="Druk24 Szczecin — strona główna">
+        <img src="/wp-content/uploads/2022/10/druk24-logo.svg" alt="Druk24 Szczecin">
+      </a>
+
+      <button
+        class="druk24-site-menu-toggle"
+        id="siteMenuToggle"
+        type="button"
+        aria-label="Otwórz menu strony"
+        aria-controls="siteNavigation"
+        aria-expanded="false"
+      >
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+
+      <nav class="druk24-site-navigation" id="siteNavigation" aria-label="Menu główne">
+        <a href="/">Start</a>
+        <a href="/cennik/">Cennik</a>
+        <a class="is-current" href="/drukulator/" aria-current="page">Drukulator</a>
+        <a href="/o-nas/">O nas</a>
+        <a href="/blog/">Blog</a>
+        <a href="/dojazd-i-kontakt/">Dojazd i kontakt</a>
+      </nav>
+    </div>
+  </header>
+
   <div class="app-shell">
     <aside class="sidebar" id="sidebar">
       <div class="brand">
         <div class="brand-icon">🖨️</div>
         <div>
           <h1>Drukulator</h1>
-          <p id="versionLabel">0.3.1v — GitHub Pages</p>
+          <p id="versionLabel">0.4.0v</p>
         </div>
       </div>
       <nav id="navigation" class="navigation" aria-label="Produkty"></nav>
@@ -25,7 +57,7 @@
       </div>
     </aside>
 
-    <button id="menuToggle" class="menu-toggle" aria-label="Otwórz menu">☰</button>
+    <button id="menuToggle" class="menu-toggle" aria-label="Otwórz menu produktów">☰</button>
 
     <main class="workspace">
       <section class="content" id="content" aria-live="polite"></section>
@@ -33,8 +65,70 @@
     </main>
   </div>
 
+  <footer class="druk24-site-footer">
+    <div class="druk24-site-footer__grid">
+      <section>
+        <a class="druk24-footer-logo" href="/" aria-label="Druk24 Szczecin — strona główna">
+          <img src="/wp-content/uploads/2022/10/druk24-logo.svg" alt="Druk24 Szczecin">
+        </a>
+        <p>
+          al. Wojska Polskiego 39a<br>
+          70-473 Szczecin
+        </p>
+        <p>
+          NIP 852 26 09 187<br>
+          KRS 0000521253
+        </p>
+      </section>
+
+      <section>
+        <h2>Kontakt</h2>
+        <p>
+          <a href="tel:+48918314747">+48 91 831 47 47</a><br>
+          <a href="tel:+48572379445">+48 572 379 445</a>
+        </p>
+        <p>
+          <a href="mailto:biuro@druk24.szczecin.pl">biuro@druk24.szczecin.pl</a>
+        </p>
+        <p>
+          Poniedziałek–piątek:<br>
+          8:00–18:00
+        </p>
+      </section>
+
+      <section>
+        <h2>Oferta</h2>
+        <nav class="druk24-footer-links" aria-label="Oferta">
+          <a href="/oferta/ulotki-i-plakaty/">Ulotki i plakaty</a>
+          <a href="/oferta/wizytowkii-papier-firmowy/">Wizytówki</a>
+          <a href="/oferta/etykiety-wlepki-i-magnesy/">Naklejki i etykiety</a>
+          <a href="/oferta/folie-i-banery/">Folie i banery</a>
+          <a href="/oferta/rollupy-i-x-banery/">Roll-upy i X-bannery</a>
+          <a href="/oferta/obrazy-na-plotnie/">Obrazy na płótnie</a>
+        </nav>
+      </section>
+
+      <section>
+        <h2>Drukarnia</h2>
+        <nav class="druk24-footer-links" aria-label="Informacje">
+          <a href="/o-nas/">O nas</a>
+          <a href="/dojazd-i-kontakt/">Kontakt i dojazd</a>
+          <a href="/blog/">Blog</a>
+          <a href="/polityka-prywatnosci/">Polityka prywatności</a>
+          <a href="/regulamin/">Regulamin</a>
+          <a href="/rodo/">RODO</a>
+        </nav>
+      </section>
+    </div>
+
+    <div class="druk24-site-footer__bottom">
+      <span>© Druk24 Szczecin</span>
+      <a href="/drukulator/">Kalkulator wyceny online</a>
+    </div>
+  </footer>
+
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script src="js/calculators.js?v=0.3.0"></script>
-  <script src="js/app.js?v=0.3.0"></script>
+  <script src="js/calculators.js?v=0.4.0"></script>
+  <script src="js/app.js?v=0.4.0"></script>
 </body>
 </html>
