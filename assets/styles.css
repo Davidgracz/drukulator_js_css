@@ -251,3 +251,327 @@ button:disabled {
   .admin-price-grid { grid-template-columns: 1fr; }
   .admin-actions .button { width: 100%; }
 }
+/* Układ strony Druk24 */
+:root {
+  --druk24-header-height: 86px;
+  --druk24-page-width: 1400px;
+  --druk24-blue: #5493d0;
+  --druk24-blue-dark: #3277b8;
+}
+
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 200;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #111827;
+  text-decoration: none;
+  transform: translateY(-160%);
+  transition: transform .2s ease;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+.druk24-site-header {
+  position: sticky;
+  top: 0;
+  z-index: 80;
+  min-height: var(--druk24-header-height);
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 5px 22px rgba(15, 23, 42, .08);
+}
+
+.druk24-site-header__inner {
+  width: min(var(--druk24-page-width), calc(100% - 40px));
+  min-height: var(--druk24-header-height);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 34px;
+}
+
+.druk24-site-logo {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.druk24-site-logo img {
+  display: block;
+  width: 188px;
+  max-width: 100%;
+  max-height: 64px;
+}
+
+.druk24-site-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: clamp(16px, 2.2vw, 34px);
+}
+
+.druk24-site-navigation a {
+  position: relative;
+  padding: 31px 0 28px;
+  color: #171717;
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color .2s ease;
+}
+
+.druk24-site-navigation a::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 20px;
+  left: 0;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--druk24-blue);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform .2s ease;
+}
+
+.druk24-site-navigation a:hover,
+.druk24-site-navigation a.is-current {
+  color: var(--druk24-blue-dark);
+}
+
+.druk24-site-navigation a:hover::after,
+.druk24-site-navigation a.is-current::after {
+  transform: scaleX(1);
+}
+
+.druk24-site-menu-toggle {
+  display: none;
+  width: 44px;
+  height: 44px;
+  padding: 10px;
+  border: 0;
+  border-radius: 8px;
+  background: #f3f4f6;
+}
+
+.druk24-site-menu-toggle span {
+  display: block;
+  height: 2px;
+  margin: 5px 0;
+  border-radius: 999px;
+  background: #111827;
+  transition: transform .2s ease, opacity .2s ease;
+}
+
+.druk24-site-menu-toggle.is-open span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.druk24-site-menu-toggle.is-open span:nth-child(2) {
+  opacity: 0;
+}
+
+.druk24-site-menu-toggle.is-open span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 270px minmax(0, 1fr);
+  min-height: calc(100vh - var(--druk24-header-height));
+}
+
+.sidebar {
+  position: sticky;
+  inset: auto;
+  top: var(--druk24-header-height);
+  width: 270px;
+  height: calc(100vh - var(--druk24-header-height));
+  align-self: start;
+}
+
+.workspace {
+  min-width: 0;
+  margin-left: 0;
+}
+
+.druk24-site-footer {
+  position: relative;
+  z-index: 40;
+  background: #0e0e0f;
+  color: #ffffff;
+  border-top: 1px solid #252525;
+}
+
+.druk24-site-footer__grid {
+  width: min(var(--druk24-page-width), calc(100% - 40px));
+  margin: 0 auto;
+  padding: 58px 0 46px;
+  display: grid;
+  grid-template-columns: 1.25fr 1fr 1fr 1fr;
+  gap: clamp(28px, 4vw, 66px);
+}
+
+.druk24-site-footer h2 {
+  margin: 0 0 20px;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.druk24-site-footer p {
+  margin: 0 0 18px;
+  color: #c8c8ca;
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.druk24-site-footer a {
+  color: #c8c8ca;
+  text-decoration: none;
+  transition: color .2s ease;
+}
+
+.druk24-site-footer a:hover {
+  color: #ffffff;
+}
+
+.druk24-footer-logo {
+  display: inline-flex;
+  margin-bottom: 22px;
+}
+
+.druk24-footer-logo img {
+  display: block;
+  width: 180px;
+  max-width: 100%;
+  filter: brightness(0) invert(1);
+}
+
+.druk24-footer-links {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.druk24-site-footer__bottom {
+  width: min(var(--druk24-page-width), calc(100% - 40px));
+  margin: 0 auto;
+  padding: 19px 0 22px;
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  border-top: 1px solid #29292b;
+  color: #8f8f93;
+  font-size: 13px;
+}
+
+.druk24-site-footer__bottom a {
+  color: #aeb0b5;
+}
+
+@media (max-width: 1020px) {
+  .druk24-site-header__inner {
+    position: relative;
+  }
+
+  .druk24-site-menu-toggle {
+    display: block;
+    flex: 0 0 auto;
+  }
+
+  .druk24-site-navigation {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
+    display: none;
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0;
+    padding: 8px 18px 18px;
+    background: #ffffff;
+    border-top: 1px solid #ececec;
+    border-bottom: 1px solid #e5e7eb;
+    box-shadow: 0 18px 28px rgba(15, 23, 42, .12);
+  }
+
+  .druk24-site-navigation.is-open {
+    display: flex;
+  }
+
+  .druk24-site-navigation a {
+    padding: 14px 4px;
+    border-bottom: 1px solid #eeeeee;
+  }
+
+  .druk24-site-navigation a::after {
+    display: none;
+  }
+
+  .druk24-site-navigation a:last-child {
+    border-bottom: 0;
+  }
+
+  .druk24-site-footer__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  :root {
+    --druk24-header-height: 72px;
+  }
+
+  .druk24-site-header__inner {
+    width: min(var(--druk24-page-width), calc(100% - 24px));
+  }
+
+  .druk24-site-logo img {
+    width: 155px;
+    max-height: 50px;
+  }
+
+  .app-shell {
+    display: block;
+    min-height: calc(100vh - var(--druk24-header-height));
+  }
+
+  .sidebar {
+    position: fixed;
+    inset: var(--druk24-header-height) auto 0 0;
+    top: var(--druk24-header-height);
+    width: min(86vw, 300px);
+    height: auto;
+  }
+
+  .menu-toggle {
+    top: calc(var(--druk24-header-height) + 12px);
+  }
+
+  .druk24-site-footer__grid {
+    width: min(var(--druk24-page-width), calc(100% - 32px));
+    grid-template-columns: 1fr;
+    gap: 34px;
+    padding: 44px 0 36px;
+  }
+
+  .druk24-site-footer__bottom {
+    width: min(var(--druk24-page-width), calc(100% - 32px));
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
