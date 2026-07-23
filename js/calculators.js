@@ -132,20 +132,49 @@
     return round2(printType === "Wielkoformatowy" ? Number(root[formatName]) * Number(quantity) : root[formatName][String(quantity)]);
   }
 
-  function calculateRollup(prices, productType, size, quantity) {
+  function getQuantityUnitPrice(quantity, tiers) {
     assertPositive(quantity, "Ilość");
-    const unitPrice = Number(prices.rollup[productType][size]);
-    return { price: round2(unitPrice * Number(quantity)), unitPrice };
+    const sorted = [...(tiers || [])].sort((a, b) => Number(a.min_szt) - Number(b.min_szt));
+    let selected = null;
+    for (const tier of sorted) {
+      if (Number(quantity) >= Number(tier.min_szt)) selected = tier;
+    }
+    if (!selected) throw new Error("Nie znaleziono progu cenowego dla wybranej ilości.");
+    return selected;
   }
 
-  function calculatePvc(prices, widthCm, heightCm, quantity, productType) {
+  function calculateRollup(prices, productType, size, quantity) {
+    assertPositive(quantity, "Ilość");
+    const data = prices.rollup[productType]?.[size];
+    if (!data) throw new Error("Nie znaleziono wybranego wariantu roll-upu.");
+    const tier = getQuantityUnitPrice(Number(quantity), data.progi_ilosciowe);
+    const unitPrice = Number(tier.cena_sztuki);
+    return { price: round2(unitPrice * Number(quantity)), unitPrice, tierMinQuantity: Number(tier.min_szt) };
+  }
+
+  function getPvcPricePerM2(totalArea, thicknessData) {
+    assertPositive(totalArea, "Łączna powierzchnia");
+    const tiers = thicknessData?.progi_cenowe_m2 || [];
+    for (const tier of tiers) {
+      if (tier.maks_m2 == null) return Number(tier.cena_m2);
+      const max = Number(tier.maks_m2);
+      const matches = tier.maks_wlacznie === false ? totalArea < max : totalArea <= max;
+      if (matches) return Number(tier.cena_m2);
+    }
+    throw new Error("Nie znaleziono progu cenowego PCV.");
+  }
+
+  function calculatePvc(prices, widthCm, heightCm, quantity, productType, thickness) {
     assertPositive(widthCm, "Szerokość");
     assertPositive(heightCm, "Wysokość");
     assertPositive(quantity, "Ilość");
     const data = prices.pvc[productType];
+    const thicknessData = data?.grubosci?.[thickness];
+    if (!thicknessData) throw new Error("Nie znaleziono wybranej grubości płyty.");
     const totalArea = Number(widthCm) / 100 * Number(heightCm) / 100 * Number(quantity);
-    const unitPrice = Number(data.cena_m2);
-    return { price: round2(Math.max(totalArea * unitPrice, Number(data.minimum_zamowienia))), totalArea, unitPrice, minimumOrder: Number(data.minimum_zamowienia) };
+    const unitPrice = getPvcPricePerM2(totalArea, thicknessData);
+    const minimumOrder = Number(data.minimum_zamowienia || 0);
+    return { price: round2(Math.max(totalArea * unitPrice, minimumOrder)), totalArea, unitPrice, minimumOrder };
   }
 
   function getQuantityTier(quantity) {
@@ -183,9 +212,12 @@
 
   function getApparelDiscount(quantity, discounts) {
     assertPositive(quantity, "Ilość");
-    if (quantity > 20) return Number(discounts.powyzej_20_sztuk ?? 20);
-    if (quantity >= 10) return Number(discounts.od_10_sztuk ?? 10);
-    return 0;
+    const tiers = [...(discounts.progi_ilosciowe || [])].sort((a, b) => Number(a.min_szt) - Number(b.min_szt));
+    let discount = 0;
+    for (const tier of tiers) {
+      if (Number(quantity) >= Number(tier.min_szt)) discount = Number(tier.rabat_proc);
+    }
+    return discount;
   }
 
   function normalizeSize(value) {
@@ -326,7 +358,13 @@
   }
 
   function calculateCanvasCustom(prices, widthCm, heightCm, quantity) {
+    assertPositive(widthCm, "Szerokość obrazu");
+    assertPositive(heightCm, "Wysokość obrazu");
     assertPositive(quantity, "Ilość");
+    const minSide = Number(prices.obrazy_na_plotnie.minimalny_bok_cm || 30);
+    const maxSide = Number(prices.obrazy_na_plotnie.maksymalny_bok_cm || 150);
+    if (Math.min(Number(widthCm), Number(heightCm)) < minSide) throw new Error(`Minimalny bok obrazu to ${minSide} cm.`);
+    if (Math.max(Number(widthCm), Number(heightCm)) > maxSide) throw new Error(`Maksymalny bok obrazu to ${maxSide} cm.`);
     const billing = findCanvasBillingFormat(prices, Number(widthCm), Number(heightCm));
     return { price: round2(billing.price * Number(quantity)), unitPrice: billing.price, billing };
   }

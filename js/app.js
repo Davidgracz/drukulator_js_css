@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const VERSION = "0.2.0v — GitHub Pages";
+  const VERSION = "0.3.0v — GitHub Pages";
   const C = window.Calculators;
   const content = document.getElementById("content");
   const navigation = document.getElementById("navigation");
@@ -9,7 +9,7 @@
   const toast = document.getElementById("toast");
   const sidebar = document.getElementById("sidebar");
   const downloadPricesButton = document.getElementById("downloadPrices");
-  const PRICE_OVERRIDE_KEY = "drukulator_prices_override";
+  const PRICE_OVERRIDE_KEY = "drukulator_prices_override_0_3_0";
   const ADMIN_SESSION_KEY = "drukulator_admin_unlocked";
   const ADMIN_PASSWORD_HASH = "76ec9956";
 
@@ -280,7 +280,7 @@
 
   function humanizePathPart(part, parent) {
     if (typeof part === "number") {
-      if (parent === "progi_cenowe" || parent === "progi_cenowe_mb") return `Próg ${part + 1}`;
+      if (["progi_cenowe", "progi_cenowe_mb", "progi_cenowe_m2", "progi_ilosciowe"].includes(parent)) return `Próg ${part + 1}`;
       return `Pozycja ${part + 1}`;
     }
     const labels = {
@@ -303,6 +303,11 @@
       mnozniki_zadruku: "Mnożniki zadruku",
       progi_cenowe: "Progi cenowe",
       progi_cenowe_mb: "Progi cenowe mb",
+      progi_cenowe_m2: "Progi cenowe m²",
+      progi_ilosciowe: "Progi ilościowe",
+      min_szt: "Od liczby sztuk",
+      rabat_proc: "Rabat [%]",
+      grubosci: "Grubości",
       formaty: "Formaty",
       rodzaje_opraw: "Rodzaje opraw",
       produkty: "Produkty",
@@ -557,35 +562,61 @@
 
   function renderRollup() {
     const root = state.prices.rollup;
-    content.innerHTML = `${header("Roll-up i X-baner")}<div class="card"><div class="form-grid">
+    content.innerHTML = `${header("Roll-up i X-bannery")}<div class="card"><div class="form-grid">
       <div class="field half"><label>Rodzaj produktu</label><select id="rollProduct">${options(Object.keys(root))}</select></div>
       <div class="field half"><label>Szerokość / format</label><select id="rollSize"></select></div>
       <div class="field"><label>Ilość sztuk</label><input id="rollQty" type="number" min="1" step="1" value="1"></div>
     </div><div id="rollInfo"></div><div class="actions"><button class="button" id="calculate">Oblicz cenę</button></div></div><div id="quoteArea"></div>`;
     const product = document.getElementById("rollProduct"), size = document.getElementById("rollSize");
-    function refresh() { size.innerHTML = options(Object.keys(root[product.value])); document.getElementById("rollInfo").innerHTML = alertBox(product.value === "X-baner" ? "Format określony w wybranym wariancie." : "Wysokość roll-upu: 200 cm.", "info"); }
+    function refresh() {
+      const productData = root[product.value];
+      size.innerHTML = options(Object.keys(productData));
+      const firstVariant = Object.values(productData)[0];
+      const tierHeaders = [...firstVariant.progi_ilosciowe].sort((a, b) => Number(a.min_szt) - Number(b.min_szt));
+      const rows = Object.entries(productData).map(([format, data]) => {
+        const tiers = [...data.progi_ilosciowe].sort((a, b) => Number(a.min_szt) - Number(b.min_szt));
+        return `<tr><td>${esc(format)}</td>${tiers.map(tier => `<td>${money(tier.cena_sztuki)} zł</td>`).join("")}</tr>`;
+      }).join("");
+      const headings = tierHeaders.map((tier, index) => {
+        if (index === 0 && Number(tier.min_szt) === 1) return "1 szt.";
+        const next = tierHeaders[index + 1];
+        return next ? `${tier.min_szt}–${Number(next.min_szt) - 1} szt.` : `Od ${tier.min_szt} szt.`;
+      });
+      const note = product.value === "X-baner" ? "Format jest określony w wybranym wariancie." : "Wysokość roll-upu i wkładu: 200 cm.";
+      document.getElementById("rollInfo").innerHTML = `${alertBox(note, "info")}<details><summary>Cennik brutto za sztukę</summary><table class="tier-table"><thead><tr><th>Format</th>${headings.map(label => `<th>${esc(label)}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></details>`;
+    }
     product.addEventListener("change", refresh); refresh();
     document.getElementById("calculate").addEventListener("click", () => { try {
-      const result = C.calculateRollup(state.prices, product.value, size.value, numberValue("rollQty"));
-      showQuote({ title: product.value, description: `${product.value}, ${size.value}, ${value("rollQty")} szt.`, price: result.price, details: [["Cena jednostkowa", `${money(result.unitPrice)} zł`]] });
+      const quantity = numberValue("rollQty");
+      const result = C.calculateRollup(state.prices, product.value, size.value, quantity);
+      const tierLabel = result.tierMinQuantity >= 5 ? "Od 5 sztuk" : result.tierMinQuantity >= 2 ? "2–4 sztuki" : "1 sztuka";
+      showQuote({ title: product.value, description: `${product.value}, ${size.value}, ${quantity} szt.`, price: result.price, details: [["Próg ilościowy", tierLabel], ["Cena jednostkowa", `${money(result.unitPrice)} zł`]] });
     } catch (e) { setResultError(e); } });
   }
 
   function renderPvc() {
     const root = state.prices.pvc;
-    content.innerHTML = `${header("Druk na PCV")}<div class="card"><div class="form-grid">
+    content.innerHTML = `${header("Folia z nadrukiem + PCV")}<div class="card"><div class="form-grid">
       <div class="field half"><label>Rodzaj produktu</label><select id="pvcProduct">${options(Object.keys(root))}</select></div>
       <div class="field half"><label>Grubość płyty</label><select id="pvcThickness"></select></div>
       <div class="field third"><label>Szerokość jednej sztuki [cm]</label><input id="pvcWidth" type="number" min="0.1" step="1" value="100"></div>
       <div class="field third"><label>Wysokość jednej sztuki [cm]</label><input id="pvcHeight" type="number" min="0.1" step="1" value="50"></div>
       <div class="field third"><label>Ilość sztuk</label><input id="pvcQty" type="number" min="1" step="1" value="1"></div>
-    </div><div class="actions"><button class="button" id="calculate">Oblicz cenę</button></div></div><div id="quoteArea"></div>`;
+    </div><div id="pvcInfo"></div><div class="actions"><button class="button" id="calculate">Oblicz cenę</button></div></div><div id="quoteArea"></div>`;
     const product = document.getElementById("pvcProduct"), thickness = document.getElementById("pvcThickness");
-    function refresh() { thickness.innerHTML = options(root[product.value].grubosc || ["Nie dotyczy"]); }
-    product.addEventListener("change", refresh); refresh();
+    function refreshInfo() {
+      const tiers = root[product.value].grubosci[thickness.value].progi_cenowe_m2;
+      const rows = tiers.map((tier, index) => {
+        const range = index === 0 ? "Poniżej 2 m²" : tier.maks_m2 == null ? "Powyżej 5 m²" : "Od 2 do 5 m²";
+        return `<tr><td>${range}</td><td>${money(tier.cena_m2)} zł/m²</td></tr>`;
+      }).join("");
+      document.getElementById("pvcInfo").innerHTML = `<details><summary>Cennik dla grubości ${esc(thickness.value)}</summary><table class="tier-table"><tbody>${rows}</tbody></table></details>`;
+    }
+    function refresh() { thickness.innerHTML = options(Object.keys(root[product.value].grubosci)); refreshInfo(); }
+    product.addEventListener("change", refresh); thickness.addEventListener("change", refreshInfo); refresh();
     document.getElementById("calculate").addEventListener("click", () => { try {
-      const result = C.calculatePvc(state.prices, numberValue("pvcWidth"), numberValue("pvcHeight"), numberValue("pvcQty"), product.value);
-      showQuote({ title: "Druk na PCV", description: `${product.value}, płyta ${thickness.value}, ${value("pvcWidth")} × ${value("pvcHeight")} cm, ${value("pvcQty")} szt.`, price: result.price, details: [["Łączna powierzchnia", `${num(result.totalArea)} m²`], ["Cena za m²", `${money(result.unitPrice)} zł`], ["Minimum zamówienia", `${money(result.minimumOrder)} zł`]] });
+      const result = C.calculatePvc(state.prices, numberValue("pvcWidth"), numberValue("pvcHeight"), numberValue("pvcQty"), product.value, thickness.value);
+      showQuote({ title: "Folia z nadrukiem + PCV", description: `${product.value}, płyta ${thickness.value}, ${value("pvcWidth")} × ${value("pvcHeight")} cm, ${value("pvcQty")} szt.`, price: result.price, details: [["Łączna powierzchnia", `${num(result.totalArea)} m²`], ["Cena za m²", `${money(result.unitPrice)} zł`], ["Minimum zamówienia", `${money(result.minimumOrder)} zł`]] });
     } catch (e) { setResultError(e); } });
   }
 
@@ -657,12 +688,14 @@
     function refreshPrints() {
       const data = products[category.value][product.value], values = [C.NO_PRINT, ...Object.keys(data.ceny)];
       front.innerHTML = options(values); back.innerHTML = options(values);
-      document.getElementById("appInfo").innerHTML = `${data.opis ? alertBox(data.opis, "info") : ""}${alertBox(`Rabat: ${root.rabaty.od_10_sztuk || 10}% od 10 sztuk, ${root.rabaty.powyzej_20_sztuk || 20}% powyżej 20 sztuk.`, "info")}`;
+      const discountRows = (root.rabaty.progi_ilosciowe || []).map(tier => `<tr><td>Od ${tier.min_szt} szt.</td><td>${tier.rabat_proc}%</td></tr>`).join("");
+      document.getElementById("appInfo").innerHTML = `${data.opis ? alertBox(data.opis, "info") : ""}<details><summary>Rabaty ilościowe</summary><table class="tier-table"><tbody>${discountRows}</tbody></table></details>`;
     }
     category.addEventListener("change", refreshProducts); product.addEventListener("change", refreshPrints); refreshProducts();
     document.getElementById("calculate").addEventListener("click", () => { try {
       const result = C.calculateApparel(state.prices, category.value, product.value, front.value, back.value, numberValue("appQty"));
-      const details = [["Cena bazowa za sztukę", `${money(result.baseUnitPrice)} zł`], ["Dopłata za drugi nadruk", `${money(result.extraPrintPrice)} zł`], ["Cena jednostkowa przed rabatem", `${money(result.unitPrice)} zł`], ["Wartość przed rabatem", `${money(result.priceBeforeDiscount)} zł`], ["Rabat", `${num(result.discountPercent, 0)}% = ${money(result.discountAmount)} zł`]];
+      const baseLabel = category.value === "Sam nadruk" ? "Cena pierwszego nadruku" : "Cena bazowa za sztukę";
+      const details = [[baseLabel, `${money(result.baseUnitPrice)} zł`], ["Dopłata za drugi nadruk", `${money(result.extraPrintPrice)} zł`], ["Cena jednostkowa przed rabatem", `${money(result.unitPrice)} zł`], ["Wartość przed rabatem", `${money(result.priceBeforeDiscount)} zł`], ["Rabat", `${num(result.discountPercent, 0)}% = ${money(result.discountAmount)} zł`]];
       if (result.extraPrintMatchedSize) details.push(["Drugi nadruk rozliczony jako", result.extraPrintMatchedSize]);
       showQuote({ title: product.value, description: `${category.value} — ${product.value}, przód: ${front.value}, tył: ${back.value}, ${value("appQty")} szt.`, price: result.price, details });
     } catch (e) { setResultError(e); } });
@@ -701,52 +734,118 @@
 
   function renderCanvas() {
     const root = state.prices.obrazy_na_plotnie;
-    content.innerHTML = `${header("Obrazy na płótnie", `${root.material || "Płótno"}; maksymalny bok: ${root.maksymalny_bok_cm || 150} cm`)}<div class="card">
-      <div class="field"><label>Wybierz plik JPG / PNG / WebP</label><input id="canvasFile" type="file" accept="image/jpeg,image/png,image/webp,image/tiff"></div>
-      <div id="canvasWorkspace">${alertBox("Wczytaj zdjęcie, aby dopasować format do jego proporcji.", "info")}</div>
-    </div><div id="quoteArea"></div>`;
-    document.getElementById("canvasFile").addEventListener("change", event => {
-      const file = event.target.files[0]; if (!file) return;
-      const image = new Image(); const url = URL.createObjectURL(file);
-      image.onload = () => { renderCanvasControls(file, url, image.naturalWidth, image.naturalHeight); };
-      image.onerror = () => { document.getElementById("canvasWorkspace").innerHTML = alertBox("Nie można odczytać tego pliku obrazu.", "error"); URL.revokeObjectURL(url); };
-      image.src = url;
-    });
-  }
-
-  function renderCanvasControls(file, url, imageWidth, imageHeight) {
-    const workspace = document.getElementById("canvasWorkspace");
-    workspace.innerHTML = `<img class="image-preview" src="${url}" alt="Podgląd"><p class="muted">${esc(file.name)} — ${imageWidth} × ${imageHeight} px</p><div class="form-grid">
-      <div class="field half"><label>Sposób wyboru rozmiaru</label><select id="canvasMode">${options(["Proponowane formaty", "Podaj jeden bok"])}</select></div>
+    content.innerHTML = `${header("Obrazy na płótnie", `${root.material || "Płótno"}; zakres boków: ${root.minimalny_bok_cm || 30}–${root.maksymalny_bok_cm || 150} cm`)}<div class="card"><div class="form-grid">
+      <div class="field half"><label>Sposób wyboru rozmiaru</label><select id="canvasMode">${options(["Wybierz format z cennika", "Wpisz własny wymiar", "Dopasuj do zdjęcia"])}</select></div>
       <div class="field half"><label>Ilość obrazów</label><input id="canvasQty" type="number" min="1" step="1" value="1"></div>
       <div id="canvasDynamic" class="field" style="display:contents"></div>
-    </div><div id="canvasMessage"></div><div class="actions"><button class="button" id="calculateCanvas">Oblicz cenę</button></div>`;
-    const mode = document.getElementById("canvasMode"), dynamic = document.getElementById("canvasDynamic");
-    function refresh() {
-      document.getElementById("canvasMessage").innerHTML = "";
-      if (mode.value === "Proponowane formaty") {
-        const suggestions = C.getCanvasSuggestions(state.prices, imageWidth, imageHeight);
-        dynamic.innerHTML = `<div class="field"><label>Proponowany format obrazu</label><select id="canvasSuggestion">${suggestions.map((item, i) => `<option value="${i}">${item.displayWidthCm} × ${item.displayHeightCm} cm — ${money(item.price)} zł/szt. — różnica proporcji ${num(item.ratioErrorPercent, 2)}%</option>`).join("")}</select></div>`;
-        dynamic.dataset.suggestions = JSON.stringify(suggestions);
+    </div><div id="canvasMessage"></div><div class="actions"><button class="button" id="calculateCanvas">Oblicz cenę</button></div></div><div id="quoteArea"></div>`;
+
+    const mode = document.getElementById("canvasMode");
+    const dynamic = document.getElementById("canvasDynamic");
+    const message = document.getElementById("canvasMessage");
+    let imageInfo = null;
+
+    function standardFormatOptions() {
+      return Object.entries(root.formaty).map(([formatKey, price]) => `<option value="${esc(formatKey)}">${esc(formatKey.replace("x", " × "))} cm — ${money(price)} zł/szt.</option>`).join("");
+    }
+
+    function renderImageSizeOptions() {
+      const holder = document.getElementById("canvasImageOptions");
+      if (!holder || !imageInfo) return;
+      const sizeMode = document.getElementById("canvasImageSizeMode").value;
+      if (sizeMode === "Proponowane formaty") {
+        const suggestions = C.getCanvasSuggestions(state.prices, imageInfo.width, imageInfo.height);
+        imageInfo.suggestions = suggestions;
+        holder.innerHTML = `<div class="field"><label>Proponowany format</label><select id="canvasSuggestion">${suggestions.map((item, index) => `<option value="${index}">${item.displayWidthCm} × ${item.displayHeightCm} cm — ${money(item.price)} zł/szt. — różnica proporcji ${num(item.ratioErrorPercent, 2)}%</option>`).join("")}</select></div>`;
+        message.innerHTML = "";
       } else {
-        dynamic.innerHTML = `<div class="field half"><label>Który bok podajesz?</label><select id="canvasKnownSide">${options(["Szerokość", "Wysokość"])}</select></div><div class="field half"><label>Wartość podanego boku [cm]</label><input id="canvasKnownValue" type="number" min="0.1" step="0.1" value="60"></div>`;
-        const updateSize = () => { try { const r = C.calculateProportionalCanvasSize(state.prices, imageWidth, imageHeight, value("canvasKnownSide"), numberValue("canvasKnownValue")); document.getElementById("canvasMessage").innerHTML = alertBox(`Rozmiar z zachowaniem proporcji: ${num(r.widthCm, 1)} × ${num(r.heightCm, 1)} cm`, "success"); } catch (e) { document.getElementById("canvasMessage").innerHTML = alertBox(e.message, "warning"); } };
-        document.getElementById("canvasKnownSide").addEventListener("change", updateSize); document.getElementById("canvasKnownValue").addEventListener("input", updateSize); updateSize();
+        holder.innerHTML = `<div class="field half"><label>Który bok podajesz?</label><select id="canvasKnownSide">${options(["Szerokość", "Wysokość"])}</select></div><div class="field half"><label>Wartość boku [cm]</label><input id="canvasKnownValue" type="number" min="0.1" step="0.1" value="60"></div>`;
+        const updateProportionalSize = () => {
+          try {
+            const result = C.calculateProportionalCanvasSize(state.prices, imageInfo.width, imageInfo.height, value("canvasKnownSide"), numberValue("canvasKnownValue"));
+            message.innerHTML = alertBox(`Rozmiar z zachowaniem proporcji: ${num(result.widthCm, 1)} × ${num(result.heightCm, 1)} cm`, "success");
+          } catch (error) {
+            message.innerHTML = alertBox(error.message, "warning");
+          }
+        };
+        document.getElementById("canvasKnownSide").addEventListener("change", updateProportionalSize);
+        document.getElementById("canvasKnownValue").addEventListener("input", updateProportionalSize);
+        updateProportionalSize();
       }
     }
-    mode.addEventListener("change", refresh); refresh();
-    document.getElementById("calculateCanvas").addEventListener("click", () => { try {
-      const quantity = numberValue("canvasQty");
-      if (mode.value === "Proponowane formaty") {
-        const suggestions = JSON.parse(dynamic.dataset.suggestions), selected = suggestions[Number(value("canvasSuggestion"))];
-        const result = C.calculateCanvasStandard(state.prices, selected.formatKey, quantity);
-        showQuote({ title: "Obrazy na płótnie", description: `${selected.displayWidthCm} × ${selected.displayHeightCm} cm, ${quantity} szt., plik ${file.name}`, price: result.price, details: [["Format cennikowy", selected.formatKey], ["Cena jednostkowa", `${money(result.unitPrice)} zł`], ["Różnica proporcji", `${num(selected.ratioErrorPercent, 2)}%`], ["Rozdzielczość pliku", `${imageWidth} × ${imageHeight} px`]] });
-      } else {
-        const proportional = C.calculateProportionalCanvasSize(state.prices, imageWidth, imageHeight, value("canvasKnownSide"), numberValue("canvasKnownValue"));
-        const result = C.calculateCanvasCustom(state.prices, proportional.widthCm, proportional.heightCm, quantity);
-        showQuote({ title: "Obrazy na płótnie", description: `${num(proportional.widthCm, 1)} × ${num(proportional.heightCm, 1)} cm, ${quantity} szt., plik ${file.name}`, price: result.price, details: [["Format rozliczeniowy", result.billing.formatKey], ["Wymiar rozliczeniowy", `${result.billing.displayWidthCm} × ${result.billing.displayHeightCm} cm`], ["Sposób rozliczenia", result.billing.billingMethod], ["Cena jednostkowa", `${money(result.unitPrice)} zł`], ["Rozdzielczość pliku", `${imageWidth} × ${imageHeight} px`]] });
+
+    function handleCanvasFile(event) {
+      const file = event.target.files[0];
+      imageInfo = null;
+      message.innerHTML = "";
+      const workspace = document.getElementById("canvasImageWorkspace");
+      if (!file) {
+        workspace.innerHTML = alertBox("Wybierz zdjęcie, aby dopasować format.", "info");
+        return;
       }
-    } catch (e) { setResultError(e); } });
+      const image = new Image();
+      const url = URL.createObjectURL(file);
+      image.onload = () => {
+        imageInfo = { file, url, width: image.naturalWidth, height: image.naturalHeight, suggestions: [] };
+        workspace.innerHTML = `<img class="image-preview" src="${url}" alt="Podgląd"><p class="muted">${esc(file.name)} — ${image.naturalWidth} × ${image.naturalHeight} px</p><div class="field"><label>Dopasowanie rozmiaru</label><select id="canvasImageSizeMode">${options(["Proponowane formaty", "Podaj jeden bok"])}</select></div><div id="canvasImageOptions" class="form-grid"></div>`;
+        document.getElementById("canvasImageSizeMode").addEventListener("change", renderImageSizeOptions);
+        renderImageSizeOptions();
+      };
+      image.onerror = () => {
+        URL.revokeObjectURL(url);
+        workspace.innerHTML = alertBox("Nie można odczytać tego pliku obrazu.", "error");
+      };
+      image.src = url;
+    }
+
+    function refresh() {
+      imageInfo = null;
+      message.innerHTML = "";
+      if (mode.value === "Wybierz format z cennika") {
+        dynamic.innerHTML = `<div class="field"><label>Format obrazu</label><select id="canvasFormat">${standardFormatOptions()}</select></div>`;
+      } else if (mode.value === "Wpisz własny wymiar") {
+        dynamic.innerHTML = `<div class="field half"><label>Szerokość [cm]</label><input id="canvasWidth" type="number" min="${root.minimalny_bok_cm || 30}" max="${root.maksymalny_bok_cm || 150}" step="0.1" value="60"></div><div class="field half"><label>Wysokość [cm]</label><input id="canvasHeight" type="number" min="${root.minimalny_bok_cm || 30}" max="${root.maksymalny_bok_cm || 150}" step="0.1" value="90"></div>`;
+        message.innerHTML = alertBox("Własny wymiar jest rozliczany według najbliższego większego formatu z cennika.", "info");
+      } else {
+        dynamic.innerHTML = `<div class="field"><label>Wybierz plik JPG / PNG / WebP</label><input id="canvasFile" type="file" accept="image/jpeg,image/png,image/webp,image/tiff"></div><div id="canvasImageWorkspace" class="field">${alertBox("Wybierz zdjęcie, aby dopasować format.", "info")}</div>`;
+        document.getElementById("canvasFile").addEventListener("change", handleCanvasFile);
+      }
+    }
+
+    mode.addEventListener("change", refresh);
+    refresh();
+
+    document.getElementById("calculateCanvas").addEventListener("click", () => {
+      try {
+        const quantity = numberValue("canvasQty");
+        if (mode.value === "Wybierz format z cennika") {
+          const formatKey = value("canvasFormat");
+          const result = C.calculateCanvasStandard(state.prices, formatKey, quantity);
+          const [width, height] = formatKey.split("x");
+          showQuote({ title: "Obrazy na płótnie", description: `${width} × ${height} cm, ${quantity} szt.`, price: result.price, details: [["Format cennikowy", formatKey], ["Cena jednostkowa", `${money(result.unitPrice)} zł`]] });
+          return;
+        }
+        if (mode.value === "Wpisz własny wymiar") {
+          const width = numberValue("canvasWidth");
+          const height = numberValue("canvasHeight");
+          const result = C.calculateCanvasCustom(state.prices, width, height, quantity);
+          showQuote({ title: "Obrazy na płótnie", description: `${num(width, 1)} × ${num(height, 1)} cm, ${quantity} szt.`, price: result.price, details: [["Format rozliczeniowy", result.billing.formatKey], ["Wymiar rozliczeniowy", `${result.billing.displayWidthCm} × ${result.billing.displayHeightCm} cm`], ["Sposób rozliczenia", result.billing.billingMethod], ["Cena jednostkowa", `${money(result.unitPrice)} zł`]] });
+          return;
+        }
+        if (!imageInfo) throw new Error("Najpierw wybierz zdjęcie.");
+        if (value("canvasImageSizeMode") === "Proponowane formaty") {
+          const selected = imageInfo.suggestions[Number(value("canvasSuggestion"))];
+          const result = C.calculateCanvasStandard(state.prices, selected.formatKey, quantity);
+          showQuote({ title: "Obrazy na płótnie", description: `${selected.displayWidthCm} × ${selected.displayHeightCm} cm, ${quantity} szt., plik ${imageInfo.file.name}`, price: result.price, details: [["Format cennikowy", selected.formatKey], ["Cena jednostkowa", `${money(result.unitPrice)} zł`], ["Różnica proporcji", `${num(selected.ratioErrorPercent, 2)}%`], ["Rozdzielczość pliku", `${imageInfo.width} × ${imageInfo.height} px`]] });
+        } else {
+          const proportional = C.calculateProportionalCanvasSize(state.prices, imageInfo.width, imageInfo.height, value("canvasKnownSide"), numberValue("canvasKnownValue"));
+          const result = C.calculateCanvasCustom(state.prices, proportional.widthCm, proportional.heightCm, quantity);
+          showQuote({ title: "Obrazy na płótnie", description: `${num(proportional.widthCm, 1)} × ${num(proportional.heightCm, 1)} cm, ${quantity} szt., plik ${imageInfo.file.name}`, price: result.price, details: [["Format rozliczeniowy", result.billing.formatKey], ["Wymiar rozliczeniowy", `${result.billing.displayWidthCm} × ${result.billing.displayHeightCm} cm`], ["Sposób rozliczenia", result.billing.billingMethod], ["Cena jednostkowa", `${money(result.unitPrice)} zł`], ["Rozdzielczość pliku", `${imageInfo.width} × ${imageInfo.height} px`]] });
+        }
+      } catch (error) {
+        setResultError(error);
+      }
+    });
   }
 
   function renderCart() {
