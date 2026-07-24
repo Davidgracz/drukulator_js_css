@@ -118,14 +118,38 @@ a { color: inherit; }
 .app-shell { min-height: 100vh; }
 .sidebar {
   position: fixed; inset: 0 auto 0 0; width: 270px; z-index: 20;
-  display: flex; flex-direction: column; background: var(--sidebar);
-  border-right: 1px solid var(--border); padding: 22px 16px;
+  display: flex; flex-direction: column; min-height: 0; overflow: hidden;
+  background: var(--sidebar); border-right: 1px solid var(--border); padding: 22px 16px;
 }
 .brand { display: flex; gap: 12px; align-items: center; padding: 0 8px 18px; }
 .brand-icon { font-size: 2rem; }
 .brand h1 { margin: 0; font-size: 1.25rem; }
 .brand p { margin: 4px 0 0; color: var(--muted); font-size: .78rem; }
-.navigation { display: grid; gap: 6px; overflow-y: auto; padding-right: 3px; }
+.navigation {
+  display: grid;
+  flex: 1 1 auto;
+  min-height: 0;
+  align-content: start;
+  gap: 6px;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  padding-right: 6px;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted) transparent;
+}
+.navigation::-webkit-scrollbar { width: 8px; }
+.navigation::-webkit-scrollbar-track { background: transparent; }
+.navigation::-webkit-scrollbar-thumb {
+  min-height: 38px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: var(--muted);
+  background-clip: padding-box;
+}
+.navigation::-webkit-scrollbar-thumb:hover { background: var(--text); background-clip: padding-box; }
 .nav-button {
   width: 100%; text-align: left; color: var(--text); background: transparent;
   border: 1px solid transparent; border-radius: 10px; padding: 10px 12px;
@@ -137,7 +161,7 @@ a { color: inherit; }
   margin-left: .08em;
   font-weight: 800;
   letter-spacing: .03em;
-  background: linear-gradient(90deg, #7eefff 0%, #ffffff 35%, #62f3ff 60%, #dfffff 80%, #7eefff 100%);
+  background: linear-gradient(45deg, #1fe0fa 0%, #0059ff 35%, #62f3ff 60%, #0066ff 80%, #2ee7ff 100%);
   background-size: 220% 100%;
   -webkit-background-clip: text;
   background-clip: text;
@@ -540,6 +564,9 @@ button:disabled {
   top: var(--druk24-header-height);
   width: 270px;
   height: calc(100vh - var(--druk24-header-height));
+  height: calc(100dvh - var(--druk24-header-height));
+  max-height: calc(100vh - var(--druk24-header-height));
+  max-height: calc(100dvh - var(--druk24-header-height));
   align-self: start;
 }
 
@@ -708,7 +735,11 @@ button:disabled {
     inset: var(--druk24-header-height) auto 0 0;
     top: var(--druk24-header-height);
     width: min(86vw, 300px);
-    height: auto;
+    height: calc(100vh - var(--druk24-header-height));
+    height: calc(100dvh - var(--druk24-header-height));
+    max-height: calc(100vh - var(--druk24-header-height));
+    max-height: calc(100dvh - var(--druk24-header-height));
+    overflow: hidden;
   }
 
   .menu-toggle {

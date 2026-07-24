@@ -81,7 +81,7 @@
     "plakat b1 24h",
     "plakat b0 24h"
   ],
-  "Druk cyfrowy 24h": [
+  "Druk cyfrowy i ksero 24h": [
     "druk cyfrowy",
     "drukowanie",
     "wydruk",
@@ -130,7 +130,11 @@
     "druk malego formatu",
     "druk cyfrowy 24h",
     "druk 24h",
-    "wydruk 24h"
+    "wydruk 24h",
+    "druk cyfrowy i ksero 24h",
+    "dla studentów 24h",
+    "dla studentow 24h",
+    "arkuszowanie 24h"
   ],
   "Folie i banery 24h": [
     "folie",

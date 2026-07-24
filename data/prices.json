@@ -918,11 +918,11 @@
       "Standardowy 80 g": 0.0,
       "Papier kolorowy": 0.3,
       "Papier etykietowy": 2.0,
-      "Papier kredowy 130 g": 0.5,
-      "Papier kredowy 170 g": 1.0,
-      "Papier kredowy 250 g": 1.5,
-      "Papier kredowy 300 g": 2.0,
-      "Papier kredowy 350 g": 2.5
+      "Papier kredowy 130 g": 0.3,
+      "Papier kredowy 170 g": 0.5,
+      "Papier kredowy 250 g": 0.75,
+      "Papier kredowy 300 g": 1.0,
+      "Papier kredowy 350 g": 1.5
     },
     "dla_studentow": {
       "Czarno-biały": {
