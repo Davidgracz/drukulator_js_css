@@ -808,3 +808,55 @@ button:disabled {
     margin-top: 2px;
   }
 }
+
+
+/* Edycja słownika wyszukiwarki */
+.search-dictionary-editor {
+  display: grid;
+  gap: 14px;
+}
+
+.search-dictionary-category {
+  margin: 0;
+  overflow: hidden;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.search-dictionary-category > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  background: var(--summary-bg);
+  list-style: none;
+}
+
+.search-dictionary-category > summary::-webkit-details-marker {
+  display: none;
+}
+
+.search-dictionary-category[open] > summary {
+  border-bottom: 1px solid var(--border);
+}
+
+.search-dictionary-category__body {
+  padding: 16px;
+}
+
+.search-dictionary-category__body p {
+  margin: 0 0 10px;
+}
+
+.search-dictionary-category textarea {
+  min-height: 230px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  line-height: 1.55;
+}
+
+.search-dictionary-category.filtered-out {
+  display: none;
+}

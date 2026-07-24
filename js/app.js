@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const VERSION = "0.5.1v";
+  const VERSION = "0.5.3v";
   const C = window.Calculators;
   const content = document.getElementById("content");
   const navigation = document.getElementById("navigation");
@@ -16,14 +16,18 @@
   const productSearchResults = document.getElementById("productSearchResults");
   const themeColorMeta = document.querySelector('meta[name="theme-color"]');
   const THEME_KEY = "drukulator_theme";
-  const PRICE_OVERRIDE_KEY = "drukulator_prices_override_0_5_1";
-  const LEGACY_PRICE_OVERRIDE_KEYS = ["drukulator_prices_override_0_5_0", "drukulator_prices_override_0_4_1", "drukulator_prices_override_0_4_0", "drukulator_prices_override_0_3_1", "drukulator_prices_override_0_3_0"];
+  const PRICE_OVERRIDE_KEY = "drukulator_prices_override_0_5_3";
+  const LEGACY_PRICE_OVERRIDE_KEYS = ["drukulator_prices_override_0_5_2", "drukulator_prices_override_0_5_1", "drukulator_prices_override_0_5_0", "drukulator_prices_override_0_4_1", "drukulator_prices_override_0_4_0", "drukulator_prices_override_0_3_1", "drukulator_prices_override_0_3_0"];
+  const SEARCH_TERMS_OVERRIDE_KEY = "drukulator_search_terms_override_0_5_3";
+  const LEGACY_SEARCH_TERMS_OVERRIDE_KEYS = ["drukulator_search_terms_override_0_5_2", "drukulator_search_terms_override_0_5_1"];
   const ADMIN_SESSION_KEY = "drukulator_admin_unlocked";
   const ADMIN_PASSWORD_HASH = "76ec9956";
 
   const state = {
     basePrices: null,
     prices: null,
+    baseSearchTerms: null,
+    searchTerms: null,
     page: "Start",
     searchQuery: "",
     adminUnlocked: loadSessionFlag(ADMIN_SESSION_KEY),
@@ -41,16 +45,19 @@
     ["Naklejki", renderStickers],
     ["Plakaty", renderPosters],
     ["Roll-up", renderRollup],
-    ["PVC", renderPvc],
+    ["PCV i pianki", renderPvc],
     ["Druk cyfrowy i ksero", renderDigital],
     ["Koszulki i odzież", renderApparel],
     ["Oprawa prac", renderBinding],
     ["Laminowanie", renderLamination],
     ["Obrazy na płótnie", renderCanvas],
-    ["Edycja cen", renderPriceAdmin]
+    ["Edycja cen", renderPriceAdmin],
+    ["Edycja wyszukiwarki", renderSearchAdmin]
   ];
 
-  const PRODUCT_SEARCH_TERMS = {
+  const ADMIN_PAGE_NAMES = new Set(["Edycja cen", "Edycja wyszukiwarki"]);
+
+  const DEFAULT_PRODUCT_SEARCH_TERMS = {
     "Wizytówki": [
       "wizytowki", "wizytowka", "wizytowek", "wizytowke", "wiytowki", "wizytuwki",
       "karty biznesowe", "karta biznesowa", "business card", "business cards", "karty firmowe",
@@ -89,11 +96,14 @@
       "rollup standard", "rollup black", "rollup czarny", "rollup exclusive", "rollup lezka",
       "rollup dwustronny", "rollup podwojny", "wklad do rollupa", "wymiana wkladu rollup"
     ],
-    "PVC": [
+    "PCV i pianki": [
       "pcv", "pvc", "plyta pcv", "plyta pvc", "tablica", "tabliczka", "tablice", "szyld", "szyldy",
       "plansza", "plansze", "druk na plycie", "druk na pcv", "folia na pcv", "folia plus pcv",
       "tablica reklamowa", "tabliczka informacyjna", "tabliczka firmowa", "sztywna plyta",
-      "pcv 2 mm", "pcv 3 mm", "pcv 4 mm", "pcv 5 mm"
+      "pcv 2 mm", "pcv 3 mm", "pcv 4 mm", "pcv 5 mm", "pianka", "pianki", "plansza piankowa",
+      "plansze piankowe", "pianka 5 mm", "plyta piankowa", "foam board", "foamboard", "kapa",
+      "plansza a3", "plansza a2", "plansza a1", "plansza b2", "plansza b1", "plansza b0",
+      "lekka plansza", "plansza wystawowa", "plansza prezentacyjna", "wydruk na piance"
     ],
     "Druk cyfrowy i ksero": [
       "druk cyfrowy", "drukowanie", "wydruk", "wydruki", "ksero", "kopie", "kopiowanie", "skanowanie",
@@ -211,7 +221,7 @@
     const queryTokens = rawTokens.filter(token => !SEARCH_STOP_WORDS.has(token));
     const meaningfulTokens = queryTokens.length ? queryTokens : rawTokens;
 
-    return Object.entries(PRODUCT_SEARCH_TERMS).map(([pageName, terms]) => {
+    return Object.entries(state.searchTerms || DEFAULT_PRODUCT_SEARCH_TERMS).map(([pageName, terms]) => {
       const normalizedTerms = [pageName, ...terms].map(normalizeSearchText);
       let score = 0;
 
@@ -332,17 +342,30 @@
 
   async function boot() {
     try {
-      const response = await fetch("data/prices.json", { cache: "no-store" });
-      if (!response.ok) throw new Error(`Błąd pobierania cennika: HTTP ${response.status}`);
-      state.basePrices = await response.json();
+      const [priceResponse, searchResponse] = await Promise.all([
+        fetch("data/prices.json", { cache: "no-store" }),
+        fetch("data/search-terms.json", { cache: "no-store" }).catch(() => null)
+      ]);
+
+      if (!priceResponse.ok) throw new Error(`Błąd pobierania cennika: HTTP ${priceResponse.status}`);
+      state.basePrices = await priceResponse.json();
       const savedPrices = loadSavedPrices();
       state.prices = savedPrices ? mergeDeep(deepClone(state.basePrices), savedPrices) : deepClone(state.basePrices);
+
+      let repositorySearchTerms = deepClone(DEFAULT_PRODUCT_SEARCH_TERMS);
+      if (searchResponse && searchResponse.ok) {
+        const loadedTerms = await searchResponse.json();
+        repositorySearchTerms = sanitizeSearchTerms(loadedTerms, DEFAULT_PRODUCT_SEARCH_TERMS);
+      }
+      state.baseSearchTerms = repositorySearchTerms;
+      state.searchTerms = loadSavedSearchTerms() || deepClone(state.baseSearchTerms);
+
       downloadPricesButton.disabled = false;
       renderNavigation();
       renderCurrentPage();
       renderCart();
     } catch (error) {
-      content.innerHTML = `${header("Błąd uruchomienia", "Nie udało się wczytać pliku cenowego.")}${alertBox(error.message + " Uruchom projekt przez GitHub Pages albo lokalny serwer HTTP, nie przez dwuklik index.html.", "error")}`;
+      content.innerHTML = `${header("Błąd uruchomienia", "Nie udało się wczytać plików projektu.")}${alertBox(error.message + " Uruchom projekt przez GitHub Pages albo lokalny serwer HTTP, nie przez dwuklik index.html.", "error")}`;
     }
   }
 
@@ -373,6 +396,50 @@
 
     return null;
   }
+  function loadSavedSearchTerms() {
+    const keys = [SEARCH_TERMS_OVERRIDE_KEY, ...LEGACY_SEARCH_TERMS_OVERRIDE_KEYS];
+
+    for (const key of keys) {
+      const saved = loadJson(key, null);
+      if (isValidSearchTermsFile(saved)) {
+        const sanitized = sanitizeSearchTerms(saved, state.baseSearchTerms || DEFAULT_PRODUCT_SEARCH_TERMS);
+        if (key !== SEARCH_TERMS_OVERRIDE_KEY) {
+          try { localStorage.setItem(SEARCH_TERMS_OVERRIDE_KEY, JSON.stringify(sanitized)); } catch {}
+        }
+        return sanitized;
+      }
+      if (saved) {
+        try { localStorage.removeItem(key); } catch {}
+      }
+    }
+    return null;
+  }
+
+  function isValidSearchTermsFile(valueToCheck) {
+    return Boolean(
+      valueToCheck &&
+      typeof valueToCheck === "object" &&
+      !Array.isArray(valueToCheck) &&
+      Object.values(valueToCheck).every(items => Array.isArray(items) && items.every(item => typeof item === "string"))
+    );
+  }
+
+  function sanitizeSearchTerms(source, fallback) {
+    const result = {};
+    const categories = Object.keys(fallback || DEFAULT_PRODUCT_SEARCH_TERMS);
+    categories.forEach(category => {
+      const sourceItems = Array.isArray(source && source[category]) ? source[category] : (fallback[category] || []);
+      const unique = new Map();
+      sourceItems.forEach(item => {
+        const phrase = String(item || "").trim();
+        const normalized = normalizeSearchText(phrase);
+        if (phrase && normalized && !unique.has(normalized)) unique.set(normalized, phrase);
+      });
+      result[category] = Array.from(unique.values());
+    });
+    return result;
+  }
+
   function loadSessionFlag(key) {
     try { return sessionStorage.getItem(key) === "1"; } catch { return false; }
   }
@@ -437,9 +504,9 @@
     navigation.innerHTML = pages.map(([name]) => {
       const classes = ["nav-button"];
       if (name === state.page) classes.push("active");
-      if (name === "Edycja cen") classes.push("admin-nav");
+      if (ADMIN_PAGE_NAMES.has(name)) classes.push("admin-nav");
       if (hasSearch && matchedPages.has(name)) classes.push("search-match");
-      if (hasSearch && !matchedPages.has(name) && name !== "Start" && name !== "Edycja cen") classes.push("search-dim");
+      if (hasSearch && !matchedPages.has(name) && name !== "Start" && !ADMIN_PAGE_NAMES.has(name)) classes.push("search-dim");
       return `<button class="${classes.join(" ")}" data-page="${esc(name)}">${esc(name)}</button>`;
     }).join("");
 
@@ -597,7 +664,7 @@
     const labels = {
       meta: "Ustawienia ogólne",
       banery: "Folie i banery",
-      pvc: "Druk na PCV",
+      pvc: "PCV i pianki",
       wizytowki: "Wizytówki",
       papier_firmowy: "Papier firmowy",
       rollup: "Roll-up i X-baner",
@@ -622,6 +689,8 @@
       cena_m2: "Cena za m²",
       cena_mb: "Cena za mb",
       cena_sztuki: "Cena za sztukę",
+      szerokosc_cm: "Szerokość [cm]",
+      wysokosc_cm: "Wysokość [cm]",
       minimum_zamowienia: "Minimum zamówienia",
       minimum_m2: "Minimalna długość / powierzchnia",
       maks_m2: "Górna granica m²",
@@ -747,6 +816,157 @@
       hash = Math.imul(hash, 0x01000193);
     }
     return (hash >>> 0).toString(16).padStart(8, "0");
+  }
+
+  function renderSearchAdmin() {
+    if (!state.adminUnlocked) {
+      renderSearchAdminLogin();
+      return;
+    }
+
+    const hasOverride = Boolean(loadJson(SEARCH_TERMS_OVERRIDE_KEY, null));
+    content.innerHTML = `${header("Edycja wyszukiwarki", "Dodawaj własne frazy i określenia klientów")}
+      <div class="card admin-toolbar">
+        ${alertBox("Frazy zapisane w panelu działają od razu w tej przeglądarce. Aby opublikować je dla wszystkich, pobierz search-terms.json i podmień plik data/search-terms.json na serwerze lub GitHubie.", "info")}
+        <div class="admin-status-row">
+          <span class="status-dot ${hasOverride ? "active" : ""}"></span>
+          <strong id="adminSearchStatus">${hasOverride ? "Używany jest słownik zapisany w tej przeglądarce" : "Używany jest słownik z serwera"}</strong>
+        </div>
+        <div class="field admin-search"><label>Wyszukaj kategorię</label><input id="searchDictionaryFilter" type="search" placeholder="np. wizytówki, naklejki, pianki"></div>
+        <div class="actions admin-actions">
+          <button class="button" id="saveSearchDictionary" type="button">Zapisz i zastosuj</button>
+          <button class="button secondary" id="downloadSearchDictionary" type="button">Pobierz search-terms.json</button>
+          <label class="button secondary admin-file-button">Wczytaj search-terms.json<input id="importSearchDictionary" type="file" accept="application/json,.json"></label>
+          <button class="button secondary" id="resetSearchDictionary" type="button">Przywróć słownik z serwera</button>
+          <button class="button danger" id="lockSearchAdmin" type="button">Zablokuj panel</button>
+        </div>
+      </div>
+      <div id="searchDictionaryMessage"></div>
+      <div id="searchDictionaryEditor" class="search-dictionary-editor">${buildSearchTermsEditor(state.searchTerms)}</div>`;
+
+    document.getElementById("searchDictionaryFilter").addEventListener("input", event => filterSearchTermsEditor(event.target.value));
+    document.getElementById("saveSearchDictionary").addEventListener("click", saveSearchTerms);
+    document.getElementById("downloadSearchDictionary").addEventListener("click", downloadSearchTermsJson);
+    document.getElementById("importSearchDictionary").addEventListener("change", importSearchTerms);
+    document.getElementById("resetSearchDictionary").addEventListener("click", resetSearchTerms);
+    document.getElementById("lockSearchAdmin").addEventListener("click", lockSearchAdmin);
+  }
+
+  function renderSearchAdminLogin() {
+    content.innerHTML = `${header("Edycja wyszukiwarki", "Panel administracyjny")}
+      <div class="card admin-login-card">
+        <form id="searchAdminLoginForm">
+          <div class="field"><label>Hasło</label><input id="searchAdminPassword" type="password" autocomplete="current-password" required autofocus></div>
+          <div class="actions"><button class="button full" type="submit">Otwórz edycję wyszukiwarki</button></div>
+        </form>
+        <div id="searchAdminLoginMessage"></div>
+        <p class="muted admin-security-note">Panel korzysta z tego samego hasła co edycja cen.</p>
+      </div>`;
+
+    document.getElementById("searchAdminLoginForm").addEventListener("submit", event => {
+      event.preventDefault();
+      const message = document.getElementById("searchAdminLoginMessage");
+      const passwordHash = hashPassword(value("searchAdminPassword"));
+      if (passwordHash !== ADMIN_PASSWORD_HASH) {
+        message.innerHTML = alertBox("Nieprawidłowe hasło.", "error");
+        document.getElementById("searchAdminPassword").select();
+        return;
+      }
+      state.adminUnlocked = true;
+      try { sessionStorage.setItem(ADMIN_SESSION_KEY, "1"); } catch {}
+      renderSearchAdmin();
+    });
+  }
+
+  function buildSearchTermsEditor(searchTerms) {
+    return Object.entries(searchTerms || {}).map(([category, phrases], index) => `
+      <details class="search-dictionary-category" data-search-category="${esc(normalizeSearchText(category))}"${index === 0 ? " open" : ""}>
+        <summary><span>${esc(category)}</span><span class="admin-count">${phrases.length}</span></summary>
+        <div class="search-dictionary-category__body">
+          <p class="muted">Jedna fraza w każdym wierszu. Możesz dodawać nazwy potoczne, odmiany i typowe literówki.</p>
+          <textarea data-search-terms-category="${esc(category)}" spellcheck="false">${esc(phrases.join("\n"))}</textarea>
+        </div>
+      </details>`).join("");
+  }
+
+  function filterSearchTermsEditor(query) {
+    const normalized = normalizeSearchText(query);
+    document.querySelectorAll(".search-dictionary-category").forEach(category => {
+      const matches = !normalized || category.dataset.searchCategory.includes(normalized);
+      category.classList.toggle("filtered-out", !matches);
+      if (normalized && matches) category.open = true;
+    });
+  }
+
+  function readSearchTermsFromEditor() {
+    const updated = {};
+    document.querySelectorAll("[data-search-terms-category]").forEach(textarea => {
+      const category = textarea.dataset.searchTermsCategory;
+      const phrases = textarea.value
+        .split(/\r?\n/)
+        .map(item => item.trim())
+        .filter(Boolean);
+      updated[category] = phrases;
+    });
+    return sanitizeSearchTerms(updated, state.baseSearchTerms || DEFAULT_PRODUCT_SEARCH_TERMS);
+  }
+
+  function saveSearchTerms() {
+    const message = document.getElementById("searchDictionaryMessage");
+    try {
+      state.searchTerms = readSearchTermsFromEditor();
+      localStorage.setItem(SEARCH_TERMS_OVERRIDE_KEY, JSON.stringify(state.searchTerms));
+      document.getElementById("adminSearchStatus").textContent = "Używany jest słownik zapisany w tej przeglądarce";
+      document.querySelector(".status-dot").classList.add("active");
+      renderNavigation();
+      message.innerHTML = alertBox("Frazy zostały zapisane i wyszukiwarka już z nich korzysta.", "success");
+      showToast("Zapisano słownik wyszukiwarki");
+    } catch (error) {
+      message.innerHTML = alertBox(error.message || String(error), "error");
+    }
+  }
+
+  function downloadSearchTermsJson() {
+    const terms = readSearchTermsFromEditor();
+    const data = JSON.stringify(terms, null, 2);
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(new Blob([data], { type: "application/json;charset=utf-8" }));
+    link.download = "search-terms.json";
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+
+  async function importSearchTerms(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const message = document.getElementById("searchDictionaryMessage");
+    try {
+      const imported = JSON.parse(await file.text());
+      if (!isValidSearchTermsFile(imported)) throw new Error("Wybrany plik nie ma prawidłowej struktury słownika.");
+      state.searchTerms = sanitizeSearchTerms(imported, state.baseSearchTerms || DEFAULT_PRODUCT_SEARCH_TERMS);
+      localStorage.setItem(SEARCH_TERMS_OVERRIDE_KEY, JSON.stringify(state.searchTerms));
+      renderNavigation();
+      renderSearchAdmin();
+      showToast("Wczytano search-terms.json");
+    } catch (error) {
+      message.innerHTML = alertBox(error.message || String(error), "error");
+      event.target.value = "";
+    }
+  }
+
+  function resetSearchTerms() {
+    if (!window.confirm("Przywrócić frazy zapisane w pliku data/search-terms.json?")) return;
+    localStorage.removeItem(SEARCH_TERMS_OVERRIDE_KEY);
+    state.searchTerms = deepClone(state.baseSearchTerms || DEFAULT_PRODUCT_SEARCH_TERMS);
+    renderNavigation();
+    renderSearchAdmin();
+    showToast("Przywrócono słownik z serwera");
+  }
+
+  function lockSearchAdmin() {
+    state.adminUnlocked = false;
+    try { sessionStorage.removeItem(ADMIN_SESSION_KEY); } catch {}
+    renderSearchAdmin();
   }
 
   function renderBusinessCards() {
@@ -931,27 +1151,91 @@
 
   function renderPvc() {
     const root = state.prices.pvc;
-    content.innerHTML = `${header("Folia z nadrukiem + PCV")}<div class="card"><div class="form-grid">
-      <div class="field half"><label>Rodzaj produktu</label><select id="pvcProduct">${options(Object.keys(root))}</select></div>
-      <div class="field half"><label>Grubość płyty</label><select id="pvcThickness"></select></div>
-      <div class="field third"><label>Szerokość jednej sztuki [cm]</label><input id="pvcWidth" type="number" min="0.1" step="1" value="100"></div>
-      <div class="field third"><label>Wysokość jednej sztuki [cm]</label><input id="pvcHeight" type="number" min="0.1" step="1" value="50"></div>
-      <div class="field third"><label>Ilość sztuk</label><input id="pvcQty" type="number" min="1" step="1" value="1"></div>
+    content.innerHTML = `${header("PCV i pianki")}<div class="card"><div class="form-grid">
+      <div class="field"><label>Rodzaj produktu</label><select id="pvcProduct">${options(Object.keys(root))}</select></div>
+      <div id="pvcDynamic" class="field" style="display:contents"></div>
     </div><div id="pvcInfo"></div><div class="actions"><button class="button" id="calculate">Oblicz cenę</button></div></div><div id="quoteArea"></div>`;
-    const product = document.getElementById("pvcProduct"), thickness = document.getElementById("pvcThickness");
-    function refreshInfo() {
-      const tiers = root[product.value].grubosci[thickness.value].progi_cenowe_m2;
-      const rows = tiers.map((tier, index) => {
-        const range = index === 0 ? "Poniżej 2 m²" : tier.maks_m2 == null ? "Powyżej 5 m²" : "Od 2 do 5 m²";
-        return `<tr><td>${range}</td><td>${money(tier.cena_m2)} zł/m²</td></tr>`;
-      }).join("");
-      document.getElementById("pvcInfo").innerHTML = `<details><summary>Cennik dla grubości ${esc(thickness.value)}</summary><table class="tier-table"><tbody>${rows}</tbody></table></details>`;
+
+    const product = document.getElementById("pvcProduct");
+    const dynamic = document.getElementById("pvcDynamic");
+    const info = document.getElementById("pvcInfo");
+
+    function renderPvcFields(data) {
+      dynamic.innerHTML = `
+        <div class="field half"><label>Grubość płyty</label><select id="pvcThickness">${options(Object.keys(data.grubosci))}</select></div>
+        <div class="field third"><label>Szerokość jednej sztuki [cm]</label><input id="pvcWidth" type="number" min="0.1" step="1" value="100"></div>
+        <div class="field third"><label>Wysokość jednej sztuki [cm]</label><input id="pvcHeight" type="number" min="0.1" step="1" value="50"></div>
+        <div class="field third"><label>Ilość sztuk</label><input id="pvcQty" type="number" min="1" step="1" value="1"></div>`;
+
+      const thickness = document.getElementById("pvcThickness");
+      function refreshInfo() {
+        const tiers = data.grubosci[thickness.value].progi_cenowe_m2;
+        const rows = tiers.map((tier, index) => {
+          const range = index === 0 ? "Poniżej 2 m²" : tier.maks_m2 == null ? "Powyżej 5 m²" : "Od 2 do 5 m²";
+          return `<tr><td>${range}</td><td>${money(tier.cena_m2)} zł/m²</td></tr>`;
+        }).join("");
+        info.innerHTML = `<details open><summary>Cennik dla grubości ${esc(thickness.value)}</summary><table class="tier-table"><tbody>${rows}</tbody></table></details>`;
+      }
+      thickness.addEventListener("change", refreshInfo);
+      refreshInfo();
     }
-    function refresh() { thickness.innerHTML = options(Object.keys(root[product.value].grubosci)); refreshInfo(); }
-    product.addEventListener("change", refresh); thickness.addEventListener("change", refreshInfo); refresh();
+
+    function renderFoamFields(data) {
+      const formatNames = Object.keys(data.formaty);
+      dynamic.innerHTML = `
+        <div class="field half"><label>Sposób wyboru wymiaru</label><select id="foamMode">${options(["Format z cennika", "Inny wymiar"])}</select></div>
+        <div class="field half" id="foamFormatField"><label>Format</label><select id="foamFormat">${options(formatNames)}</select></div>
+        <div id="foamCustomFields" class="field" style="display:contents"></div>
+        <div class="field"><label>Ilość sztuk</label><input id="pvcQty" type="number" min="1" step="1" value="1"></div>`;
+
+      const mode = document.getElementById("foamMode");
+      const formatField = document.getElementById("foamFormatField");
+      const customFields = document.getElementById("foamCustomFields");
+      const rows = Object.entries(data.formaty).map(([name, item]) => `<tr><td>${esc(name)}</td><td>${money(item.cena_sztuki)} zł/szt.</td></tr>`).join("");
+      info.innerHTML = `${alertBox("Możliwe są również inne wymiary. Są rozliczane według najmniejszego formatu z cennika, w którym plansza się mieści.", "info")}<details open><summary>Cennik plansz z pianki 5 mm</summary><table class="tier-table"><thead><tr><th>Format</th><th>Cena brutto</th></tr></thead><tbody>${rows}</tbody></table></details>`;
+
+      function refreshMode() {
+        const custom = mode.value === "Inny wymiar";
+        formatField.classList.toggle("hidden", custom);
+        customFields.innerHTML = custom ? `
+          <div class="field half"><label>Szerokość planszy [cm]</label><input id="pvcWidth" type="number" min="0.1" step="0.1" value="60"></div>
+          <div class="field half"><label>Wysokość planszy [cm]</label><input id="pvcHeight" type="number" min="0.1" step="0.1" value="80"></div>` : "";
+      }
+      mode.addEventListener("change", refreshMode);
+      refreshMode();
+    }
+
+    function refreshProduct() {
+      const data = root[product.value];
+      if (data.grubosci) renderPvcFields(data);
+      else if (data.formaty) renderFoamFields(data);
+    }
+
+    product.addEventListener("change", refreshProduct);
+    refreshProduct();
+
     document.getElementById("calculate").addEventListener("click", () => { try {
-      const result = C.calculatePvc(state.prices, numberValue("pvcWidth"), numberValue("pvcHeight"), numberValue("pvcQty"), product.value, thickness.value);
-      showQuote({ title: "Folia z nadrukiem + PCV", description: `${product.value}, płyta ${thickness.value}, ${value("pvcWidth")} × ${value("pvcHeight")} cm, ${value("pvcQty")} szt.`, price: result.price, details: [["Łączna powierzchnia", `${num(result.totalArea)} m²`], ["Cena za m²", `${money(result.unitPrice)} zł`], ["Minimum zamówienia", `${money(result.minimumOrder)} zł`]] });
+      const data = root[product.value];
+      const quantity = numberValue("pvcQty");
+
+      if (data.grubosci) {
+        const thickness = value("pvcThickness");
+        const result = C.calculatePvc(state.prices, numberValue("pvcWidth"), numberValue("pvcHeight"), quantity, product.value, thickness);
+        showQuote({ title: "Folia z nadrukiem + PCV", description: `${product.value}, płyta ${thickness}, ${value("pvcWidth")} × ${value("pvcHeight")} cm, ${quantity} szt.`, price: result.price, details: [["Łączna powierzchnia", `${num(result.totalArea)} m²`], ["Cena za m²", `${money(result.unitPrice)} zł`], ["Minimum zamówienia", `${money(result.minimumOrder)} zł`]] });
+        return;
+      }
+
+      const mode = value("foamMode");
+      if (mode === "Format z cennika") {
+        const formatName = value("foamFormat");
+        const result = C.calculateFoamBoardStandard(state.prices, product.value, formatName, quantity);
+        showQuote({ title: "Plansza pianka 5 mm", description: `${formatName}, ${quantity} szt.`, price: result.price, details: [["Grubość", data.grubosc], ["Cena jednostkowa", `${money(result.unitPrice)} zł`]] });
+      } else {
+        const width = numberValue("pvcWidth");
+        const height = numberValue("pvcHeight");
+        const result = C.calculateFoamBoardCustom(state.prices, product.value, width, height, quantity);
+        showQuote({ title: "Plansza pianka 5 mm", description: `${width} × ${height} cm, ${quantity} szt.`, price: result.price, details: [["Grubość", data.grubosc], ["Format rozliczeniowy", result.billing.formatName], ["Sposób rozliczenia", result.billing.billingMethod], ["Cena jednostkowa", `${money(result.unitPrice)} zł`]] });
+      }
     } catch (e) { setResultError(e); } });
   }
 

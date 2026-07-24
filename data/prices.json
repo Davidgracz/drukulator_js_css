@@ -185,6 +185,42 @@
           ]
         }
       }
+    },
+    "Plansza pianka 5 mm": {
+      "grubosc": "5 mm",
+      "formaty": {
+        "A3 (30 × 42 cm)": {
+          "szerokosc_cm": 30,
+          "wysokosc_cm": 42,
+          "cena_sztuki": 50
+        },
+        "A2 (42 × 59 cm)": {
+          "szerokosc_cm": 42,
+          "wysokosc_cm": 59,
+          "cena_sztuki": 55
+        },
+        "A1 (59 × 84 cm)": {
+          "szerokosc_cm": 59,
+          "wysokosc_cm": 84,
+          "cena_sztuki": 90
+        },
+        "B2 (50 × 70 cm)": {
+          "szerokosc_cm": 50,
+          "wysokosc_cm": 70,
+          "cena_sztuki": 65
+        },
+        "B1 (70 × 100 cm)": {
+          "szerokosc_cm": 70,
+          "wysokosc_cm": 100,
+          "cena_sztuki": 120
+        },
+        "B0 (100 × 140 cm)": {
+          "szerokosc_cm": 100,
+          "wysokosc_cm": 140,
+          "cena_sztuki": 220
+        }
+      },
+      "inne_wymiary": true
     }
   },
   "wizytowki": {

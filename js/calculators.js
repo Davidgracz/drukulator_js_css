@@ -177,6 +177,51 @@
     return { price: round2(Math.max(totalArea * unitPrice, minimumOrder)), totalArea, unitPrice, minimumOrder };
   }
 
+  function getFoamBoardFormats(prices, productType) {
+    const formats = prices.pvc?.[productType]?.formaty;
+    if (!formats) throw new Error("Nie znaleziono cennika plansz z pianki.");
+    return formats;
+  }
+
+  function calculateFoamBoardStandard(prices, productType, formatName, quantity) {
+    assertPositive(quantity, "Ilość");
+    const format = getFoamBoardFormats(prices, productType)[formatName];
+    if (!format) throw new Error("Nie znaleziono wybranego formatu planszy.");
+    const unitPrice = Number(format.cena_sztuki);
+    return { price: round2(unitPrice * Number(quantity)), unitPrice, formatName };
+  }
+
+  function findFoamBoardBillingFormat(prices, productType, widthCm, heightCm) {
+    assertPositive(widthCm, "Szerokość planszy");
+    assertPositive(heightCm, "Wysokość planszy");
+    const requestedWidth = Number(widthCm);
+    const requestedHeight = Number(heightCm);
+    const candidates = Object.entries(getFoamBoardFormats(prices, productType)).map(([formatName, format]) => {
+      const formatWidth = Number(format.szerokosc_cm);
+      const formatHeight = Number(format.wysokosc_cm);
+      const fitsNormally = requestedWidth <= formatWidth && requestedHeight <= formatHeight;
+      const fitsRotated = requestedWidth <= formatHeight && requestedHeight <= formatWidth;
+      return {
+        formatName,
+        widthCm: formatWidth,
+        heightCm: formatHeight,
+        price: Number(format.cena_sztuki),
+        areaCm2: formatWidth * formatHeight,
+        rotated: !fitsNormally && fitsRotated,
+        contains: fitsNormally || fitsRotated
+      };
+    });
+    const containing = candidates.filter(item => item.contains).sort((a, b) => a.areaCm2 - b.areaCm2 || a.price - b.price);
+    if (!containing.length) throw new Error("Podany wymiar jest większy niż B0 (100 × 140 cm). Skontaktuj się w sprawie indywidualnej wyceny.");
+    return { ...containing[0], billingMethod: "Najmniejszy format z cennika mieszczący podany wymiar" };
+  }
+
+  function calculateFoamBoardCustom(prices, productType, widthCm, heightCm, quantity) {
+    assertPositive(quantity, "Ilość");
+    const billing = findFoamBoardBillingFormat(prices, productType, widthCm, heightCm);
+    return { price: round2(billing.price * Number(quantity)), unitPrice: billing.price, billing };
+  }
+
   function fitItemsInLine(availableMm, itemMm, gapMm) {
     if (availableMm <= 0 || itemMm <= 0) return 0;
     return Math.max(0, Math.floor((Number(availableMm) + Number(gapMm) + 1e-9) / (Number(itemMm) + Number(gapMm))));
@@ -526,7 +571,7 @@
     NO_PRINT, DIGITAL_FINISH_KEYS, OFFSET_FINISH_KEYS,
     getBannerPricePerM2, calculateBanner, calculateBusinessCards, calculateFlyers,
     getStickerPricePerLinearMeter, calculateStickers,
-    calculatePosters, calculateRollup, calculatePvc, calculateDigital, calculateDigitalImposition, calculateApparel, calculateWorkBinding,
+    calculatePosters, calculateRollup, calculatePvc, calculateFoamBoardStandard, calculateFoamBoardCustom, calculateDigital, calculateDigitalImposition, calculateApparel, calculateWorkBinding,
     calculateLamination, getCanvasSuggestions, calculateProportionalCanvasSize, calculateCanvasStandard, calculateCanvasCustom,
     getQuantityTier, roundUpToStep
   };
