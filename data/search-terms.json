@@ -22,7 +22,8 @@
     "wizytowki jednostronne",
     "wizytowki 24h",
     "wizytowki cyfrowe",
-    "wizytowki offsetowe"
+    "wizytowki offsetowe",
+    "wizytowki premium"
   ],
   "Ulotki": [
     "ulotki",
@@ -101,7 +102,8 @@
     "naklejki dowolny ksztalt",
     "wlepki reklamowe",
     "naklejki taxi",
-    "magnes taxi"
+    "magnes taxi",
+    "numery taxi"
   ],
   "Plakaty": [
     "plakaty",
@@ -125,12 +127,10 @@
   "Roll-up": [
     "rollup",
     "roll up",
-    "roll-up",
     "rollupy",
     "rolap",
     "rolup",
     "x baner",
-    "x-baner",
     "x banner",
     "stojak reklamowy",
     "system wystawienniczy",
@@ -261,7 +261,9 @@
     "sam nadruk",
     "dodatkowy nadruk",
     "nadruk przod",
-    "nadruk tyl"
+    "nadruk tyl",
+    "ksozulka",
+    "ksozulki"
   ],
   "Oprawa prac": [
     "oprawa",
@@ -274,8 +276,10 @@
     "praca dyplomowa",
     "praca magisterska",
     "magisterska",
+    "magisterka",
     "praca licencjacka",
     "licencjacka",
+    "llicencjat",
     "praca doktorska",
     "doktorat",
     "oprawa dokumentu",

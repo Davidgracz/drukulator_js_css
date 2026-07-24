@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const VERSION = "0.5.3v";
+  const VERSION = "0.5.4v";
   const C = window.Calculators;
   const content = document.getElementById("content");
   const navigation = document.getElementById("navigation");
@@ -16,10 +16,10 @@
   const productSearchResults = document.getElementById("productSearchResults");
   const themeColorMeta = document.querySelector('meta[name="theme-color"]');
   const THEME_KEY = "drukulator_theme";
-  const PRICE_OVERRIDE_KEY = "drukulator_prices_override_0_5_3";
-  const LEGACY_PRICE_OVERRIDE_KEYS = ["drukulator_prices_override_0_5_2", "drukulator_prices_override_0_5_1", "drukulator_prices_override_0_5_0", "drukulator_prices_override_0_4_1", "drukulator_prices_override_0_4_0", "drukulator_prices_override_0_3_1", "drukulator_prices_override_0_3_0"];
-  const SEARCH_TERMS_OVERRIDE_KEY = "drukulator_search_terms_override_0_5_3";
-  const LEGACY_SEARCH_TERMS_OVERRIDE_KEYS = ["drukulator_search_terms_override_0_5_2", "drukulator_search_terms_override_0_5_1"];
+  const PRICE_OVERRIDE_KEY = "drukulator_prices_override_0_5_4";
+  const LEGACY_PRICE_OVERRIDE_KEYS = ["drukulator_prices_override_0_5_3", "drukulator_prices_override_0_5_2", "drukulator_prices_override_0_5_1", "drukulator_prices_override_0_5_0", "drukulator_prices_override_0_4_1", "drukulator_prices_override_0_4_0", "drukulator_prices_override_0_3_1", "drukulator_prices_override_0_3_0"];
+  const SEARCH_TERMS_OVERRIDE_KEY = "drukulator_search_terms_override_0_5_4";
+  const LEGACY_SEARCH_TERMS_OVERRIDE_KEYS = ["drukulator_search_terms_override_0_5_3", "drukulator_search_terms_override_0_5_2", "drukulator_search_terms_override_0_5_1"];
   const ADMIN_SESSION_KEY = "drukulator_admin_unlocked";
   const ADMIN_PASSWORD_HASH = "76ec9956";
 
@@ -41,7 +41,7 @@
     ["Start", renderHome],
     ["Wizytówki", renderBusinessCards],
     ["Ulotki", renderFlyers],
-    ["Folie i banery", renderBanners],
+    ["Folie i banery 24h", renderBanners],
     ["Naklejki", renderStickers],
     ["Plakaty", renderPosters],
     ["Roll-up", renderRollup],
@@ -70,12 +70,15 @@
       "reklama papierowa", "materialy reklamowe", "rozdawane ulotki", "ulotki a6", "ulotki a5",
       "ulotki a4", "ulotki dl", "ulotki skladane", "ulotki cyfrowe", "ulotki offsetowe"
     ],
-    "Folie i banery": [
+    "Folie i banery 24h": [
       "folie", "folia", "folii", "baner", "banery", "banner", "frontlit", "mesh", "siatka mesh",
       "baner reklamowy", "baner z oczkami", "druk banera", "folia mat", "folia matowa", "folia blysk",
       "folia blyszczaca", "folia z laminatem", "folia laminowana", "folia owh", "folia owv",
       "one way vision", "folia transparentna", "folia przezroczysta", "naklejka na witryne",
-      "oklejenie witryny", "grafika na szybe", "druk na folii", "folia samoprzylepna"
+      "oklejenie witryny", "grafika na szybe", "druk na folii", "folia samoprzylepna",
+      "folie i banery 24h", "banery 24h", "folie 24h", "baner powlekany", "baner powlekany 510g",
+      "folia do podswietlen", "folia podświetlana", "backlit", "folia do kasetonu", "folia do lightboxa",
+      "folia z transferem", "folia transferowa", "transfer folia", "transfer tape"
     ],
     "Naklejki": [
       "naklejki", "naklejka", "naklejek", "naklejke", "wlepki", "wlepka", "wlepek", "etykiety",
@@ -350,7 +353,7 @@
       if (!priceResponse.ok) throw new Error(`Błąd pobierania cennika: HTTP ${priceResponse.status}`);
       state.basePrices = await priceResponse.json();
       const savedPrices = loadSavedPrices();
-      state.prices = savedPrices ? mergeDeep(deepClone(state.basePrices), savedPrices) : deepClone(state.basePrices);
+      state.prices = migratePrices(savedPrices ? mergeDeep(deepClone(state.basePrices), savedPrices) : deepClone(state.basePrices));
 
       let repositorySearchTerms = deepClone(DEFAULT_PRODUCT_SEARCH_TERMS);
       if (searchResponse && searchResponse.ok) {
@@ -367,6 +370,19 @@
     } catch (error) {
       content.innerHTML = `${header("Błąd uruchomienia", "Nie udało się wczytać plików projektu.")}${alertBox(error.message + " Uruchom projekt przez GitHub Pages albo lokalny serwer HTTP, nie przez dwuklik index.html.", "error")}`;
     }
+  }
+
+  function migratePrices(pricesToMigrate) {
+    const banners = pricesToMigrate && pricesToMigrate.banery;
+    if (!banners || !banners["Frontlit 510g"]) return pricesToMigrate;
+
+    const legacyBanner = banners["Frontlit 510g"];
+    banners["Baner powlekany 510g"] = mergeDeep(
+      banners["Baner powlekany 510g"] || {},
+      legacyBanner
+    );
+    delete banners["Frontlit 510g"];
+    return pricesToMigrate;
   }
 
   function loadJson(key, fallback) {
@@ -428,7 +444,13 @@
     const result = {};
     const categories = Object.keys(fallback || DEFAULT_PRODUCT_SEARCH_TERMS);
     categories.forEach(category => {
-      const sourceItems = Array.isArray(source && source[category]) ? source[category] : (fallback[category] || []);
+      const categoryAliases = { "Folie i banery 24h": ["Folie i banery"] };
+      const alias = (categoryAliases[category] || []).find(name => Array.isArray(source && source[name]));
+      const sourceItems = Array.isArray(source && source[category])
+        ? source[category]
+        : alias
+          ? source[alias]
+          : (fallback[category] || []);
       const unique = new Map();
       sourceItems.forEach(item => {
         const phrase = String(item || "").trim();
@@ -663,7 +685,7 @@
   function categoryLabel(category) {
     const labels = {
       meta: "Ustawienia ogólne",
-      banery: "Folie i banery",
+      banery: "Folie i banery 24h",
       pvc: "PCV i pianki",
       wizytowki: "Wizytówki",
       papier_firmowy: "Papier firmowy",
@@ -1019,7 +1041,7 @@
 
   function renderBanners() {
     const root = state.prices.banery;
-    content.innerHTML = `${header("Folie i banery")}<div class="card"><div class="form-grid">
+    content.innerHTML = `${header("Folie i banery 24h", "Realizacja standardowa: 24h")}<div class="card"><div class="form-grid">
       <div class="field"><label>Materiał</label><select id="bannerMaterial">${options(Object.keys(root))}</select></div>
       <div class="field third"><label>Szerokość [cm]</label><input id="bannerWidth" type="number" min="0.1" step="1" value="100"></div>
       <div class="field third"><label>Wysokość [cm]</label><input id="bannerHeight" type="number" min="0.1" step="1" value="200"></div>
@@ -1032,10 +1054,14 @@
       document.getElementById("bannerInfo").innerHTML = data.oczka_w_standardzie ? alertBox("✓ Oczka w standardzie", "success") : "";
       const tiers = data.progi_cenowe || [];
       let previous = 0;
-      document.getElementById("tierTable").innerHTML = `<table class="tier-table"><thead><tr><th>Powierzchnia</th><th>Cena</th></tr></thead><tbody>${tiers.map(t => {
-        const label = t.maks_m2 == null ? `powyżej ${previous} m²` : previous === 0 ? `do ${t.maks_m2} m²` : `powyżej ${previous} do ${t.maks_m2} m²`;
-        previous = t.maks_m2 ?? previous; return `<tr><td>${label}</td><td>${money(t.cena_m2)} zł/m²</td></tr>`;
-      }).join("")}</tbody></table>`;
+      const rows = tiers.length
+        ? tiers.map(t => {
+            const label = t.maks_m2 == null ? `powyżej ${previous} m²` : previous === 0 ? `do ${t.maks_m2} m²` : `powyżej ${previous} do ${t.maks_m2} m²`;
+            previous = t.maks_m2 ?? previous;
+            return `<tr><td>${label}</td><td>${money(t.cena_m2)} zł/m²</td></tr>`;
+          }).join("")
+        : `<tr><td>Każda powierzchnia</td><td>${money(data.cena_m2)} zł/m²</td></tr>`;
+      document.getElementById("tierTable").innerHTML = `<table class="tier-table"><thead><tr><th>Powierzchnia</th><th>Cena</th></tr></thead><tbody>${rows}</tbody></table>`;
     }
     material.addEventListener("change", refresh); refresh();
     document.getElementById("calculate").addEventListener("click", () => { try {

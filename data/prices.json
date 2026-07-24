@@ -5,7 +5,7 @@
     "vat": 23
   },
   "banery": {
-    "Frontlit 510g": {
+    "Baner powlekany 510g": {
       "cena_m2": 80.0,
       "minimum_zamowienia": 70.0,
       "oczka_w_standardzie": true,
@@ -142,6 +142,31 @@
           "cena_m2": 50.0
         }
       ]
+    },
+    "Folia do podświetleń": {
+      "cena_m2": 120.0,
+      "minimum_zamowienia": 70.0,
+      "oczka_w_standardzie": false,
+      "progi_cenowe": [
+        {
+          "maks_m2": 3.0,
+          "cena_m2": 120.0
+        },
+        {
+          "maks_m2": 10.0,
+          "cena_m2": 110.0
+        },
+        {
+          "maks_m2": null,
+          "cena_m2": 90.0
+        }
+      ]
+    },
+    "Folia z transferem": {
+      "cena_m2": 70.0,
+      "minimum_zamowienia": 70.0,
+      "oczka_w_standardzie": false,
+      "progi_cenowe": []
     }
   },
   "pvc": {
@@ -800,9 +825,9 @@
       "Ręczne": 0.5
     },
     "arkuszowanie": {
-      "domyslny_spad_mm": 1.5,
+      "domyslny_spad_mm": 3,
       "odstep_miedzy_uzytkami_mm": 0,
-      "margines_arkusza_mm": 1.5,
+      "margines_arkusza_mm": 3,
       "formaty_arkuszy": {
         "SRA4": {
           "szerokosc_mm": 225,
