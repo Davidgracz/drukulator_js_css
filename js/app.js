@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const VERSION = "0.4.2v";
+  const VERSION = "0.5.0v";
   const C = window.Calculators;
   const content = document.getElementById("content");
   const navigation = document.getElementById("navigation");
@@ -12,10 +12,12 @@
   const siteMenuToggle = document.getElementById("siteMenuToggle");
   const siteNavigation = document.getElementById("siteNavigation");
   const themeToggle = document.getElementById("themeToggle");
+  const productSearch = document.getElementById("productSearch");
+  const productSearchResults = document.getElementById("productSearchResults");
   const themeColorMeta = document.querySelector('meta[name="theme-color"]');
   const THEME_KEY = "drukulator_theme";
-  const PRICE_OVERRIDE_KEY = "drukulator_prices_override_0_4_1";
-  const LEGACY_PRICE_OVERRIDE_KEYS = ["drukulator_prices_override_0_4_0", "drukulator_prices_override_0_3_1", "drukulator_prices_override_0_3_0"];
+  const PRICE_OVERRIDE_KEY = "drukulator_prices_override_0_5_0";
+  const LEGACY_PRICE_OVERRIDE_KEYS = [];
   const ADMIN_SESSION_KEY = "drukulator_admin_unlocked";
   const ADMIN_PASSWORD_HASH = "76ec9956";
 
@@ -23,6 +25,7 @@
     basePrices: null,
     prices: null,
     page: "Start",
+    searchQuery: "",
     adminUnlocked: loadSessionFlag(ADMIN_SESSION_KEY),
     cart: loadJson("drukulator_cart", []),
     order: loadJson("drukulator_order", {
@@ -46,6 +49,21 @@
     ["Obrazy na płótnie", renderCanvas],
     ["Edycja cen", renderPriceAdmin]
   ];
+
+  const PRODUCT_SEARCH_TERMS = {
+    "Wizytówki": ["wizytowki", "wizytowka", "wizyto", "karty biznesowe", "business cards"],
+    "Ulotki": ["ulotki", "ulotka", "flyer", "flyers", "reklama papierowa"],
+    "Folie i banery": ["folie", "folia", "baner", "banery", "owh", "transparentna", "laminat"],
+    "Naklejki": ["naklejki", "naklejka", "wlepki", "wlepka", "etykiety", "etykieta", "sticker"],
+    "Plakaty": ["plakaty", "plakat", "poster", "postery"],
+    "Roll-up": ["rollup", "roll up", "roll-up", "x baner", "x-baner", "scianka reklamowa", "rollup czarny", "standard black", "rollup dwustronny", "podwojny rollup"],
+    "PVC": ["pcv", "pvc", "tablica", "tabliczka", "plyta", "folia na pcv"],
+    "Druk cyfrowy i ksero": ["druk cyfrowy", "ksero", "wydruk", "arkuszowanie", "sra4", "sra3", "winietki", "winietek", "zaproszenia", "bilety", "karteczki", "druk na papierze"],
+    "Koszulki i odzież": ["koszulki", "koszulka", "odziez", "nadruk na koszulce", "czapka", "bluzy", "dtf"],
+    "Oprawa prac": ["oprawa", "bindowanie", "praca dyplomowa", "magisterska", "licencjacka", "spirala"],
+    "Laminowanie": ["laminowanie", "laminat dokumentu", "zalaminowac", "folia laminacyjna"],
+    "Obrazy na płótnie": ["obrazy", "obraz", "plotno", "canvas", "zdjecie na plotnie"]
+  };
 
   document.getElementById("versionLabel").textContent = VERSION;
   document.getElementById("menuToggle").addEventListener("click", () => sidebar.classList.toggle("open"));
@@ -71,6 +89,7 @@
     });
   }
   setupThemeToggle();
+  setupProductSearch();
   downloadPricesButton.addEventListener("click", downloadPricesJson);
 
   function setupThemeToggle() {
@@ -82,6 +101,117 @@
     themeToggle.addEventListener("click", () => {
       const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
       applyTheme(nextTheme, true);
+    });
+  }
+
+  function normalizeSearchText(value) {
+    return String(value || "")
+      .toLocaleLowerCase("pl-PL")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+  }
+
+  function levenshteinDistance(a, b) {
+    const left = String(a);
+    const right = String(b);
+    const rows = right.length + 1;
+    const previous = Array.from({ length: rows }, (_, index) => index);
+
+    for (let i = 1; i <= left.length; i += 1) {
+      const current = [i];
+      for (let j = 1; j <= right.length; j += 1) {
+        current[j] = Math.min(
+          current[j - 1] + 1,
+          previous[j] + 1,
+          previous[j - 1] + (left[i - 1] === right[j - 1] ? 0 : 1)
+        );
+      }
+      previous.splice(0, previous.length, ...current);
+    }
+
+    return previous[right.length];
+  }
+
+  function getProductSearchMatches(query) {
+    const normalizedQuery = normalizeSearchText(query);
+    if (!normalizedQuery) return [];
+    const queryTokens = normalizedQuery.split(/\s+/).filter(token => token.length > 1);
+
+    return Object.entries(PRODUCT_SEARCH_TERMS).map(([pageName, terms]) => {
+      const normalizedTerms = [pageName, ...terms].map(normalizeSearchText);
+      let score = 0;
+
+      for (const term of normalizedTerms) {
+        if (term === normalizedQuery) score = Math.max(score, 120);
+        else if (term.includes(normalizedQuery) || normalizedQuery.includes(term)) score = Math.max(score, 90);
+
+        const termTokens = term.split(/\s+/);
+        for (const token of queryTokens) {
+          if (term.includes(token)) {
+            score += 24;
+            continue;
+          }
+
+          let bestDistance = Infinity;
+          for (const termToken of termTokens) {
+            bestDistance = Math.min(bestDistance, levenshteinDistance(token, termToken));
+          }
+          const allowedDistance = token.length >= 8 ? 2 : token.length >= 5 ? 1 : 0;
+          if (bestDistance <= allowedDistance) score += 18 - bestDistance * 5;
+        }
+      }
+
+      return { pageName, score };
+    }).filter(item => item.score > 0).sort((a, b) => b.score - a.score || a.pageName.localeCompare(b.pageName, "pl"));
+  }
+
+  function setupProductSearch() {
+    if (!productSearch || !productSearchResults) return;
+
+    productSearch.addEventListener("input", () => {
+      state.searchQuery = productSearch.value;
+      renderNavigation();
+    });
+
+    productSearch.addEventListener("keydown", event => {
+      if (event.key !== "Enter") return;
+      const [bestMatch] = getProductSearchMatches(state.searchQuery);
+      if (!bestMatch) return;
+      event.preventDefault();
+      openPageFromSearch(bestMatch.pageName);
+    });
+  }
+
+  function openPageFromSearch(pageName) {
+    state.page = pageName;
+    state.searchQuery = "";
+    if (productSearch) productSearch.value = "";
+    renderNavigation();
+    renderCurrentPage();
+    sidebar.classList.remove("open");
+  }
+
+  function renderProductSearchResults(matches) {
+    if (!productSearchResults) return;
+    const query = normalizeSearchText(state.searchQuery);
+    if (!query) {
+      productSearchResults.innerHTML = "";
+      return;
+    }
+    if (!matches.length) {
+      productSearchResults.innerHTML = '<span class="product-search__empty">Nie znaleziono kategorii</span>';
+      return;
+    }
+
+    productSearchResults.innerHTML = matches.slice(0, 3).map((match, index) => `
+      <button class="product-search__result${index === 0 ? " is-best" : ""}" type="button" data-search-page="${esc(match.pageName)}">
+        ${index === 0 ? "Najlepsze dopasowanie: " : ""}${esc(match.pageName)}
+      </button>`).join("");
+
+    productSearchResults.querySelectorAll("[data-search-page]").forEach(button => {
+      button.addEventListener("click", () => openPageFromSearch(button.dataset.searchPage));
     });
   }
 
@@ -102,7 +232,7 @@
     }
 
     if (themeColorMeta) {
-      themeColorMeta.setAttribute("content", isDark ? "#050505" : "#ffffff");
+      themeColorMeta.setAttribute("content", "#050505");
     }
 
     if (persist) {
@@ -122,7 +252,7 @@
       if (!response.ok) throw new Error(`Błąd pobierania cennika: HTTP ${response.status}`);
       state.basePrices = await response.json();
       const savedPrices = loadSavedPrices();
-      state.prices = savedPrices ? savedPrices : deepClone(state.basePrices);
+      state.prices = savedPrices ? mergeDeep(deepClone(state.basePrices), savedPrices) : deepClone(state.basePrices);
       downloadPricesButton.disabled = false;
       renderNavigation();
       renderCurrentPage();
@@ -165,6 +295,19 @@
   function deepClone(value) {
     return JSON.parse(JSON.stringify(value));
   }
+  function mergeDeep(base, override) {
+    if (Array.isArray(override)) return deepClone(override);
+    if (!override || typeof override !== "object") return override;
+    const result = base && typeof base === "object" && !Array.isArray(base) ? base : {};
+    for (const [key, value] of Object.entries(override)) {
+      if (value && typeof value === "object" && !Array.isArray(value)) {
+        result[key] = mergeDeep(result[key], value);
+      } else {
+        result[key] = deepClone(value);
+      }
+    }
+    return result;
+  }
   function isValidPriceFile(value) {
     return Boolean(value && typeof value === "object" && value.banery && value.naklejki && value.druk_cyfrowy_i_ksero);
   }
@@ -203,9 +346,25 @@
   }
 
   function renderNavigation() {
-    navigation.innerHTML = pages.map(([name]) => `<button class="nav-button${name === state.page ? " active" : ""}${name === "Edycja cen" ? " admin-nav" : ""}" data-page="${esc(name)}">${esc(name)}</button>`).join("");
+    const matches = getProductSearchMatches(state.searchQuery);
+    const matchedPages = new Set(matches.slice(0, 3).map(item => item.pageName));
+    const hasSearch = normalizeSearchText(state.searchQuery).length > 0;
+
+    navigation.innerHTML = pages.map(([name]) => {
+      const classes = ["nav-button"];
+      if (name === state.page) classes.push("active");
+      if (name === "Edycja cen") classes.push("admin-nav");
+      if (hasSearch && matchedPages.has(name)) classes.push("search-match");
+      if (hasSearch && !matchedPages.has(name) && name !== "Start" && name !== "Edycja cen") classes.push("search-dim");
+      return `<button class="${classes.join(" ")}" data-page="${esc(name)}">${esc(name)}</button>`;
+    }).join("");
+
+    renderProductSearchResults(matches);
+
     navigation.querySelectorAll("[data-page]").forEach(button => button.addEventListener("click", () => {
       state.page = button.dataset.page;
+      state.searchQuery = "";
+      if (productSearch) productSearch.value = "";
       renderNavigation(); renderCurrentPage(); sidebar.classList.remove("open");
     }));
   }
@@ -714,17 +873,32 @@
 
   function renderDigital() {
     const root = state.prices.druk_cyfrowy_i_ksero;
-    const services = ["Druk cyfrowy", "Ksero i druk", "Ksero książki", "Dla studentów", "Skanowanie"];
-    content.innerHTML = `${header("Druk cyfrowy, ksero i skanowanie")}<div class="card"><div class="form-grid">
+    const imposition = root.arkuszowanie || {};
+    const services = ["Arkuszowanie SRA4/SRA3", "Druk cyfrowy", "Ksero i druk", "Ksero książki", "Dla studentów", "Skanowanie"];
+    content.innerHTML = `${header("Druk cyfrowy, ksero i arkuszowanie")}<div class="card"><div class="form-grid">
       <div class="field"><label>Rodzaj usługi</label><select id="digService">${options(services)}</select></div>
       <div id="digitalDynamic" class="field" style="display:contents"></div>
     </div><div id="digitalInfo"></div><div class="actions"><button class="button" id="calculate">Oblicz cenę</button></div></div><div id="quoteArea"></div>`;
     const service = document.getElementById("digService"), dynamic = document.getElementById("digitalDynamic");
     const standardPapers = ["Standardowy 80 g", "Papier kredowy 130 g", "Papier kredowy 170 g", "Papier kredowy 250 g", "Papier kredowy 300 g", "Papier kredowy 350 g"];
     const blackPapers = ["Standardowy 80 g", "Papier kolorowy", "Papier etykietowy", ...standardPapers.slice(1)];
+    const impositionPapers = imposition.papiery || standardPapers.filter(name => ["130 g", "170 g", "250 g", "300 g"].some(weight => name.includes(weight)));
+
     function refresh() {
       let html = "", note = "";
-      if (service.value === "Druk cyfrowy") {
+      if (service.value === "Arkuszowanie SRA4/SRA3") {
+        const sheetFormats = Object.keys(imposition.formaty_arkuszy || {});
+        const bleed = Number(imposition.domyslny_spad_mm ?? 3);
+        const margin = Number(imposition.margines_arkusza_mm ?? 3);
+        html = `<div class="field third"><label>Szerokość netto [mm]</label><input id="digWidth" type="number" min="1" step="1" value="100"></div>
+          <div class="field third"><label>Wysokość netto [mm]</label><input id="digHeight" type="number" min="1" step="1" value="50"></div>
+          <div class="field third"><label>Liczba gotowych sztuk</label><input id="digQty" type="number" min="1" step="1" value="100"></div>
+          <div class="field half"><label>Rodzaj druku</label><select id="digColor">${options(Object.keys(root.druk_cyfrowy), "Kolorowy")}</select></div>
+          <div class="field half"><label>Zadruk</label><select id="digSide">${options(Object.keys(root.mnozniki_zadruku), "Jednostronny")}</select></div>
+          <div class="field half"><label>Papier</label><select id="digPaper">${options(impositionPapers)}</select></div>
+          <div class="field half"><label>Arkusz</label><select id="digSheet">${options(["Automatycznie", ...sheetFormats])}</select></div>`;
+        note = `Kalkulator dodaje ${bleed} mm spadu z każdej strony, uwzględnia ${margin} mm marginesu arkusza i porównuje układ na SRA4 oraz SRA3. Cena korzysta z aktualnego cennika druku cyfrowego.`;
+      } else if (service.value === "Druk cyfrowy") {
         html = `<div class="field half"><label>Rodzaj druku</label><select id="digColor">${options(Object.keys(root.druk_cyfrowy))}</select></div><div class="field half"><label>Format</label><select id="digFormat">${options(Object.keys(root.mnozniki_formatu))}</select></div><div class="field half"><label>Zadruk</label><select id="digSide">${options(Object.keys(root.mnozniki_zadruku))}</select></div><div class="field half"><label>Rodzaj papieru</label><select id="digPaper"></select></div><div class="field"><label>Liczba arkuszy</label><input id="digQty" type="number" min="1" step="1" value="1"></div>`;
         note = "Druk dwustronny: cena druku × 2. Koszt papieru jest doliczany tylko raz.";
       } else if (service.value === "Ksero i druk") {
@@ -740,7 +914,8 @@
         html = `<div class="field"><label>Rodzaj skanowania</label><select id="digColor">${options(Object.keys(root.skanowanie))}</select></div><div class="field"><label>Liczba skanowanych stron</label><input id="digQty" type="number" min="1" step="1" value="1"></div>`;
         note = "Cena jest taka sama dla skanów czarno-białych i kolorowych.";
       }
-      dynamic.innerHTML = html; document.getElementById("digitalInfo").innerHTML = alertBox(note, "info");
+      dynamic.innerHTML = html;
+      document.getElementById("digitalInfo").innerHTML = alertBox(note, "info");
       if (service.value === "Druk cyfrowy") {
         const color = document.getElementById("digColor"), paper = document.getElementById("digPaper");
         function setPaper() { paper.innerHTML = options(color.value === "Czarno-biały" ? blackPapers : standardPapers); }
@@ -752,9 +927,52 @@
         color.addEventListener("change", setFormats); setFormats();
       }
     }
+
     service.addEventListener("change", refresh); refresh();
     document.getElementById("calculate").addEventListener("click", () => { try {
-      const s = service.value, color = value("digColor"), q = numberValue("digQty");
+      const s = service.value;
+
+      if (s === "Arkuszowanie SRA4/SRA3") {
+        const widthMm = numberValue("digWidth");
+        const heightMm = numberValue("digHeight");
+        const quantity = numberValue("digQty");
+        const color = value("digColor");
+        const side = value("digSide");
+        const paper = value("digPaper");
+        const sheetChoice = value("digSheet");
+        const result = C.calculateDigitalImposition(state.prices, widthMm, heightMm, quantity, paper, color, side, sheetChoice);
+        const comparisonRows = result.comparisons.map(item => `<tr class="${item.sheetFormat === result.sheetFormat ? "is-selected" : ""}">
+          <td>${esc(item.sheetFormat)}${item.sheetFormat === result.recommendedFormat ? " — polecany" : ""}</td>
+          <td>${item.piecesPerSheet}</td>
+          <td>${item.sheets}</td>
+          <td>${money(item.price)} zł</td>
+        </tr>`).join("");
+        document.getElementById("digitalInfo").innerHTML = `${alertBox(`Wybrany układ: ${result.sheetFormat}. Format polecany na podstawie ceny i liczby arkuszy: ${result.recommendedFormat}.`, "success")}
+          <details open><summary>Porównanie SRA4 i SRA3</summary><div class="table-scroll"><table class="tier-table comparison-table"><thead><tr><th>Arkusz</th><th>Użytków/ark.</th><th>Arkuszy</th><th>Cena</th></tr></thead><tbody>${comparisonRows}</tbody></table></div></details>`;
+        showQuote({
+          title: "Arkuszowanie druku cyfrowego",
+          description: `${widthMm} × ${heightMm} mm, ${quantity} szt., ${paper}, ${color.toLowerCase()}, ${side.toLowerCase()}`,
+          price: result.price,
+          details: [
+            ["Wymiar netto", `${num(result.netWidthMm, 0)} × ${num(result.netHeightMm, 0)} mm`],
+            ["Wymiar ze spadem", `${num(result.productionWidthMm, 0)} × ${num(result.productionHeightMm, 0)} mm`],
+            ["Spad", `${num(result.bleedMm, 0)} mm z każdej strony`],
+            ["Arkusz", `${result.sheetFormat} — ${num(result.sheetWidthMm, 0)} × ${num(result.sheetHeightMm, 0)} mm`],
+            ["Pole zadruku", `${num(result.usableWidthMm, 0)} × ${num(result.usableHeightMm, 0)} mm`],
+            ["Układ", result.layoutDescription],
+            ["Użytków na arkuszu", String(result.piecesPerSheet)],
+            ["Potrzebne arkusze", String(result.sheets)],
+            ["Łącznie wykonanych sztuk", String(result.totalPieces)],
+            ["Dodatkowych sztuk", String(result.extraPieces)],
+            ["Papier", paper],
+            ["Próg cenowy druku", result.tier],
+            ["Cena za zamówioną sztukę", `${money(result.pricePerOrderedPiece)} zł`]
+          ]
+        });
+        return;
+      }
+
+      const color = value("digColor"), q = numberValue("digQty");
       const format = document.getElementById("digFormat")?.value || "A4", paper = document.getElementById("digPaper")?.value || "Standardowy 80 g", side = document.getElementById("digSide")?.value || "Jednostronny";
       const result = C.calculateDigital(state.prices, s, color, q, format, paper, side);
       const details = [["Rodzaj usługi", s], ["Wariant", color], ["Ilość", q]];

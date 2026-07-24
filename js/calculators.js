@@ -177,8 +177,183 @@
     return { price: round2(Math.max(totalArea * unitPrice, minimumOrder)), totalArea, unitPrice, minimumOrder };
   }
 
-  function getQuantityTier(quantity) {
+  function fitItemsInLine(availableMm, itemMm, gapMm) {
+    if (availableMm <= 0 || itemMm <= 0) return 0;
+    return Math.max(0, Math.floor((Number(availableMm) + Number(gapMm) + 1e-9) / (Number(itemMm) + Number(gapMm))));
+  }
+
+  function getBestSheetLayout(usableWidthMm, usableHeightMm, itemWidthMm, itemHeightMm, gapMm = 0) {
+    const orientations = [
+      { name: "bez obrotu", width: Number(itemWidthMm), height: Number(itemHeightMm) },
+      { name: "obrócone 90°", width: Number(itemHeightMm), height: Number(itemWidthMm) }
+    ];
+    const candidates = [];
+
+    const perRow = orientations.map(item => fitItemsInLine(usableWidthMm, item.width, gapMm));
+    const maxRows = orientations.map(item => fitItemsInLine(usableHeightMm, item.height, gapMm));
+
+    for (let rowsA = 0; rowsA <= maxRows[0]; rowsA += 1) {
+      for (let rowsB = 0; rowsB <= maxRows[1]; rowsB += 1) {
+        const rowCount = rowsA + rowsB;
+        if (!rowCount) continue;
+        const usedHeight = rowsA * orientations[0].height + rowsB * orientations[1].height + Math.max(0, rowCount - 1) * Number(gapMm);
+        if (usedHeight > Number(usableHeightMm) + 1e-9) continue;
+        const count = rowsA * perRow[0] + rowsB * perRow[1];
+        if (!count) continue;
+        const mixed = rowsA > 0 && rowsB > 0;
+        const description = mixed
+          ? `Układ mieszany: ${rowsA} rz. bez obrotu + ${rowsB} rz. obróconych`
+          : rowsA > 0
+            ? `${rowsA} rz. bez obrotu`
+            : `${rowsB} rz. obróconych 90°`;
+        candidates.push({ count, description, mixed, method: "rows" });
+      }
+    }
+
+    const perColumn = orientations.map(item => fitItemsInLine(usableHeightMm, item.height, gapMm));
+    const maxColumns = orientations.map(item => fitItemsInLine(usableWidthMm, item.width, gapMm));
+
+    for (let columnsA = 0; columnsA <= maxColumns[0]; columnsA += 1) {
+      for (let columnsB = 0; columnsB <= maxColumns[1]; columnsB += 1) {
+        const columnCount = columnsA + columnsB;
+        if (!columnCount) continue;
+        const usedWidth = columnsA * orientations[0].width + columnsB * orientations[1].width + Math.max(0, columnCount - 1) * Number(gapMm);
+        if (usedWidth > Number(usableWidthMm) + 1e-9) continue;
+        const count = columnsA * perColumn[0] + columnsB * perColumn[1];
+        if (!count) continue;
+        const mixed = columnsA > 0 && columnsB > 0;
+        const description = mixed
+          ? `Układ mieszany: ${columnsA} kol. bez obrotu + ${columnsB} kol. obróconych`
+          : columnsA > 0
+            ? `${columnsA} kol. bez obrotu`
+            : `${columnsB} kol. obróconych 90°`;
+        candidates.push({ count, description, mixed, method: "columns" });
+      }
+    }
+
+    candidates.sort((a, b) => b.count - a.count || Number(a.mixed) - Number(b.mixed) || a.description.length - b.description.length);
+    return candidates[0] || null;
+  }
+
+  function calculateDigitalSheetVariant(pricesRoot, sheetFormat, widthMm, heightMm, quantity, paperType, colorMode, sideMode) {
+    const digital = pricesRoot.druk_cyfrowy_i_ksero;
+    const imposition = digital.arkuszowanie;
+    const sheet = imposition?.formaty_arkuszy?.[sheetFormat];
+    if (!sheet) throw new Error(`Nie znaleziono konfiguracji arkusza ${sheetFormat}.`);
+
+    const bleedMm = Number(imposition.domyslny_spad_mm ?? 3);
+    const gapMm = Number(imposition.odstep_miedzy_uzytkami_mm ?? 0);
+    const marginMm = Number(imposition.margines_arkusza_mm ?? 3);
+    const productionWidthMm = Number(widthMm) + bleedMm * 2;
+    const productionHeightMm = Number(heightMm) + bleedMm * 2;
+    const usableWidthMm = Number(sheet.szerokosc_mm) - marginMm * 2;
+    const usableHeightMm = Number(sheet.wysokosc_mm) - marginMm * 2;
+
+    const layout = getBestSheetLayout(usableWidthMm, usableHeightMm, productionWidthMm, productionHeightMm, gapMm);
+    if (!layout || layout.count < 1) {
+      throw new Error(`Wymiar ${productionWidthMm} × ${productionHeightMm} mm po spadzie nie mieści się na arkuszu ${sheetFormat}.`);
+    }
+
+    const sheets = Math.ceil(Number(quantity) / layout.count);
+    const totalPieces = sheets * layout.count;
+    const extraPieces = totalPieces - Number(quantity);
+    const priceResult = calculateDigital(
+      pricesRoot,
+      "Druk cyfrowy",
+      colorMode,
+      sheets,
+      sheet.format_rozliczeniowy,
+      paperType,
+      sideMode
+    );
+
+    return {
+      sheetFormat,
+      sheetWidthMm: Number(sheet.szerokosc_mm),
+      sheetHeightMm: Number(sheet.wysokosc_mm),
+      usableWidthMm,
+      usableHeightMm,
+      billingFormat: sheet.format_rozliczeniowy,
+      netWidthMm: Number(widthMm),
+      netHeightMm: Number(heightMm),
+      productionWidthMm,
+      productionHeightMm,
+      bleedMm,
+      marginMm,
+      gapMm,
+      piecesPerSheet: layout.count,
+      layoutDescription: layout.description,
+      sheets,
+      totalPieces,
+      extraPieces,
+      price: priceResult.price,
+      tier: priceResult.tier,
+      basePrice: priceResult.basePrice,
+      paperSurcharge: priceResult.paperSurcharge,
+      pricePerOrderedPiece: round2(priceResult.price / Number(quantity))
+    };
+  }
+
+  function calculateDigitalImposition(pricesRoot, widthMm, heightMm, quantity, paperType, colorMode, sideMode, sheetChoice = "Automatycznie") {
+    assertPositive(widthMm, "Szerokość netto");
+    assertPositive(heightMm, "Wysokość netto");
+    assertPositive(quantity, "Liczba gotowych sztuk");
+
+    const imposition = pricesRoot.druk_cyfrowy_i_ksero.arkuszowanie;
+    if (!imposition?.formaty_arkuszy) throw new Error("Brakuje konfiguracji arkuszowania w prices.json.");
+
+    const comparisons = [];
+    const errors = [];
+    for (const sheetFormat of Object.keys(imposition.formaty_arkuszy)) {
+      try {
+        comparisons.push(calculateDigitalSheetVariant(pricesRoot, sheetFormat, widthMm, heightMm, quantity, paperType, colorMode, sideMode));
+      } catch (error) {
+        errors.push(error.message);
+      }
+    }
+
+    if (!comparisons.length) throw new Error(errors[0] || "Podany format nie mieści się na żadnym arkuszu.");
+
+    const ranked = [...comparisons].sort((a, b) => a.price - b.price || a.sheets - b.sheets || b.piecesPerSheet - a.piecesPerSheet);
+    const recommended = ranked[0];
+    const selected = sheetChoice === "Automatycznie"
+      ? recommended
+      : comparisons.find(item => item.sheetFormat === sheetChoice);
+
+    if (!selected) throw new Error(`Podany format nie mieści się na arkuszu ${sheetChoice}.`);
+
+    return {
+      ...selected,
+      comparisons,
+      recommendedFormat: recommended.sheetFormat,
+      isRecommended: selected.sheetFormat === recommended.sheetFormat
+    };
+  }
+
+  function getQuantityTier(quantity, tierPrices = null) {
     assertPositive(quantity, "Ilość");
+
+    if (tierPrices && typeof tierPrices === "object") {
+      const value = Number(quantity);
+      const parsedTiers = Object.keys(tierPrices).map(key => {
+        const rangeMatch = String(key).match(/^\s*(\d+)\s*-\s*(\d+)\s*$/);
+        if (rangeMatch) {
+          return { key, min: Number(rangeMatch[1]), max: Number(rangeMatch[2]) };
+        }
+
+        const plusMatch = String(key).match(/^\s*(\d+)\s*\+\s*$/);
+        if (plusMatch) {
+          return { key, min: Number(plusMatch[1]), max: Infinity };
+        }
+
+        return null;
+      }).filter(Boolean).sort((a, b) => a.min - b.min || a.max - b.max);
+
+      const selected = parsedTiers.find(tier => value >= tier.min && value <= tier.max);
+      if (selected) return selected.key;
+      throw new Error("Nie znaleziono progu cenowego dla wybranej ilości.");
+    }
+
     if (quantity <= 20) return "1-20";
     if (quantity <= 100) return "21-100";
     if (quantity <= 500) return "101-500";
@@ -194,8 +369,9 @@
       const sideMultiplier = service === "Druk cyfrowy" ? Number(prices.mnozniki_zadruku[sideMode]) : 1;
       const formatMultiplier = Number(prices.mnozniki_formatu[formatName]);
       const printUnits = Number(quantity) * sideMultiplier * formatMultiplier;
-      const tier = getQuantityTier(printUnits);
-      const basePrice = Number(servicePrices[colorMode][tier]);
+      const tierPrices = servicePrices[colorMode];
+      const tier = getQuantityTier(printUnits, tierPrices);
+      const basePrice = Number(tierPrices[tier]);
       const paperSurcharge = Number(prices.doplaty_do_papieru[paperType]);
       const printTotal = basePrice * printUnits;
       const paperUnits = Number(quantity) * formatMultiplier;
@@ -273,8 +449,9 @@
     assertPositive(pagesPerCopy, "Liczba stron");
     assertPositive(copies, "Liczba egzemplarzy");
     const totalPrintedPages = Number(pagesPerCopy) * Number(copies);
-    const tier = getQuantityTier(totalPrintedPages);
-    const printPricePerPage = Number(prices.druk_cyfrowy_i_ksero.druk_cyfrowy[colorMode][tier]);
+    const tierPrices = prices.druk_cyfrowy_i_ksero.druk_cyfrowy[colorMode];
+    const tier = getQuantityTier(totalPrintedPages, tierPrices);
+    const printPricePerPage = Number(tierPrices[tier]);
     const printTotal = totalPrintedPages * printPricePerPage;
     const sheetsPerCopy = sideMode === "Dwustronny" ? Math.ceil(Number(pagesPerCopy) / 2) : Number(pagesPerCopy);
     const totalSheets = sheetsPerCopy * Number(copies);
@@ -373,7 +550,7 @@
     NO_PRINT, DIGITAL_FINISH_KEYS, OFFSET_FINISH_KEYS,
     getBannerPricePerM2, calculateBanner, calculateBusinessCards, calculateFlyers,
     getStickerPricePerLinearMeter, calculateStickers,
-    calculatePosters, calculateRollup, calculatePvc, calculateDigital, calculateApparel, calculateWorkBinding,
+    calculatePosters, calculateRollup, calculatePvc, calculateDigital, calculateDigitalImposition, calculateApparel, calculateWorkBinding,
     calculateLamination, getCanvasSuggestions, calculateProportionalCanvasSize, calculateCanvasStandard, calculateCanvasCustom,
     getQuantityTier, roundUpToStep
   };
