@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const VERSION = "0.5.11v";
+  const VERSION = "0.6.0v";
   const C = window.Calculators;
   const content = document.getElementById("content");
   const navigation = document.getElementById("navigation");
@@ -15,16 +15,16 @@
   const productSearchResults = document.getElementById("productSearchResults");
   const themeColorMeta = document.querySelector('meta[name="theme-color"]');
   const THEME_KEY = "drukulator_theme";
-  const PRICE_OVERRIDE_KEY = "drukulator_prices_override_0_5_11";
-  const LEGACY_PRICE_OVERRIDE_KEYS = ["drukulator_prices_override_0_5_10", "drukulator_prices_override_0_5_9", "drukulator_prices_override_0_5_8", "drukulator_prices_override_0_5_7", "drukulator_prices_override_0_5_6", "drukulator_prices_override_0_5_5", "drukulator_prices_override_0_5_4", "drukulator_prices_override_0_5_3", "drukulator_prices_override_0_5_2", "drukulator_prices_override_0_5_1", "drukulator_prices_override_0_5_0", "drukulator_prices_override_0_4_1", "drukulator_prices_override_0_4_0", "drukulator_prices_override_0_3_1", "drukulator_prices_override_0_3_0"];
-  const SEARCH_TERMS_OVERRIDE_KEY = "drukulator_search_terms_override_0_5_11";
-  const LEGACY_SEARCH_TERMS_OVERRIDE_KEYS = ["drukulator_search_terms_override_0_5_10", "drukulator_search_terms_override_0_5_9", "drukulator_search_terms_override_0_5_8", "drukulator_search_terms_override_0_5_7", "drukulator_search_terms_override_0_5_6", "drukulator_search_terms_override_0_5_5", "drukulator_search_terms_override_0_5_4", "drukulator_search_terms_override_0_5_3", "drukulator_search_terms_override_0_5_2", "drukulator_search_terms_override_0_5_1"];
+  const PRICE_OVERRIDE_KEY = "drukulator_prices_override_0_6_0";
+  const LEGACY_PRICE_OVERRIDE_KEYS = ["drukulator_prices_override_0_5_11", "drukulator_prices_override_0_5_10", "drukulator_prices_override_0_5_9", "drukulator_prices_override_0_5_8", "drukulator_prices_override_0_5_7", "drukulator_prices_override_0_5_6", "drukulator_prices_override_0_5_5", "drukulator_prices_override_0_5_4", "drukulator_prices_override_0_5_3", "drukulator_prices_override_0_5_2", "drukulator_prices_override_0_5_1", "drukulator_prices_override_0_5_0", "drukulator_prices_override_0_4_1", "drukulator_prices_override_0_4_0", "drukulator_prices_override_0_3_1", "drukulator_prices_override_0_3_0"];
+  const SEARCH_TERMS_OVERRIDE_KEY = "drukulator_search_terms_override_0_6_0";
+  const LEGACY_SEARCH_TERMS_OVERRIDE_KEYS = ["drukulator_search_terms_override_0_5_11", "drukulator_search_terms_override_0_5_10", "drukulator_search_terms_override_0_5_9", "drukulator_search_terms_override_0_5_8", "drukulator_search_terms_override_0_5_7", "drukulator_search_terms_override_0_5_6", "drukulator_search_terms_override_0_5_5", "drukulator_search_terms_override_0_5_4", "drukulator_search_terms_override_0_5_3", "drukulator_search_terms_override_0_5_2", "drukulator_search_terms_override_0_5_1"];
   const ADMIN_SESSION_KEY = "drukulator_admin_unlocked";
   const ADMIN_PASSWORD_HASH = "76ec9956";
   const ROULETTE_TRIGGER = "we wtorki chodze do kasyna";
   const PRICE_ADMIN_TRIGGERS = new Set(["nie wszsytko zloto", "nie wszystko zloto"]);
   const SEARCH_ADMIN_TRIGGER = "mowa srebrem";
-  const ROULETTE_STORAGE_KEY = "drukulator_roulette_0_5_11";
+  const ROULETTE_STORAGE_KEY = "drukulator_roulette_0_6_0";
   const ROULETTE_MAX_DISCOUNT = 20;
   const ROULETTE_RED_NUMBERS = new Set([
     1, 3, 5, 7, 9, 12, 14, 16, 18,
@@ -870,7 +870,7 @@
           <div class="metric"><span>Ceny</span><strong>Brutto</strong></div>
           <div class="metric"><span>Wersja</span><strong>${VERSION}</strong></div>
         </div>
-        ${alertBox("Dane wpisywane do formularza zamówienia nie są wysyłane na serwer. Tekst jest tworzony wyłącznie w Twojej przeglądarce.", "info")}
+        ${alertBox("Po dodaniu produktów do koszyka możesz wypełnić formularz i wysłać zapytanie bezpośrednio do Druk24.", "info")}
       </div>`;
   }
 
@@ -1911,18 +1911,25 @@
     ["orderName","orderEmail","orderPhone","orderPickup","orderNotes"].forEach(id => document.getElementById(id).addEventListener("input", updateOrderText));
     document.getElementById("copySubject").addEventListener("click", () => copyText(document.getElementById("orderSubject").value));
     document.getElementById("copyOrder").addEventListener("click", () => copyText(document.getElementById("orderText").value));
+    document.getElementById("sendOrder").addEventListener("click", sendOrderEmail);
     updateOrderText();
   }
 
   function renderOrderFormHtml() {
-    return `<section class="order-card"><h3>Formularz zamówienia</h3><p class="muted">Dane pozostają w przeglądarce. Skopiuj gotowy tekst do maila.</p>
-      <div class="field"><label>Imię i nazwisko / firma</label><input id="orderName" value="${esc(state.order.name)}" placeholder="np. Jan Kowalski / Firma ABC"></div>
-      <div class="field"><label>E-mail</label><input id="orderEmail" type="email" value="${esc(state.order.email)}"></div>
-      <div class="field"><label>Telefon</label><input id="orderPhone" value="${esc(state.order.phone)}"></div>
+    return `<section class="order-card"><h3>Formularz zamówienia</h3><p class="muted">Uzupełnij dane i wyślij zapytanie bezpośrednio do Druk24.</p>
+      <div class="field"><label>Imię i nazwisko / firma *</label><input id="orderName" value="${esc(state.order.name)}" placeholder="np. Jan Kowalski / Firma ABC" autocomplete="name" required></div>
+      <div class="field"><label>E-mail *</label><input id="orderEmail" type="email" value="${esc(state.order.email)}" autocomplete="email" placeholder="np. kontakt@firma.pl" required></div>
+      <div class="field"><label>Telefon</label><input id="orderPhone" value="${esc(state.order.phone)}" autocomplete="tel" placeholder="np. 500 000 000"></div>
       <div class="field"><label>Sposób odbioru</label><select id="orderPickup">${options(["Odbiór osobisty", "Wysyłka kurierska", "Do ustalenia"], state.order.pickup)}</select></div>
-      <div class="field"><label>Uwagi</label><textarea id="orderNotes">${esc(state.order.notes)}</textarea></div>
-      <div class="field"><label>Temat wiadomości</label><div class="code-box"><input id="orderSubject" readonly><button id="copySubject" class="button secondary copy-button">Kopiuj</button></div></div>
-      <div class="field"><label>Treść wiadomości</label><div class="code-box"><textarea id="orderText" readonly></textarea><button id="copyOrder" class="button secondary copy-button">Kopiuj</button></div></div>
+      <div class="field"><label>Uwagi</label><textarea id="orderNotes" maxlength="3000" placeholder="Termin, sposób pakowania, dodatkowe informacje...">${esc(state.order.notes)}</textarea></div>
+      <div class="order-honeypot" aria-hidden="true"><label>Strona internetowa<input id="orderWebsite" type="text" tabindex="-1" autocomplete="off"></label></div>
+      <label class="privacy-check"><input id="orderPrivacy" type="checkbox"> <span>Zapoznałem/am się z <a href="/polityka-prywatnosci/" target="_blank" rel="noopener">polityką prywatności</a> i zgadzam się na kontakt w sprawie tej wyceny. *</span></label>
+      <div class="actions"><button id="sendOrder" class="button full" type="button">Wyślij zamówienie do Druk24</button></div>
+      <div id="orderSendStatus" class="order-send-status" aria-live="polite"></div>
+      <details class="order-copy-details"><summary>Tekst wiadomości do ręcznego skopiowania</summary>
+        <div class="field"><label>Temat wiadomości</label><div class="code-box"><input id="orderSubject" readonly><button id="copySubject" class="button secondary copy-button" type="button">Kopiuj</button></div></div>
+        <div class="field"><label>Treść wiadomości</label><div class="code-box"><textarea id="orderText" readonly></textarea><button id="copyOrder" class="button secondary copy-button" type="button">Kopiuj</button></div></div>
+      </details>
     </section>`;
   }
 
@@ -1941,6 +1948,86 @@
     if (state.order.notes.trim()) lines.push("", "Uwagi do zamówienia:", state.order.notes.trim());
     lines.push("", "Proszę o potwierdzenie ceny, terminu realizacji oraz sposobu przekazania plików.", "", "Pozdrawiam,", state.order.name || "");
     document.getElementById("orderText").value = lines.join("\n").trimEnd();
+  }
+
+  async function sendOrderEmail() {
+    updateOrderText();
+
+    const button = document.getElementById("sendOrder");
+    const status = document.getElementById("orderSendStatus");
+    const privacyAccepted = document.getElementById("orderPrivacy").checked;
+    const website = document.getElementById("orderWebsite").value;
+
+    if (!state.cart.length) {
+      status.innerHTML = alertBox("Koszyk jest pusty.", "error");
+      return;
+    }
+    if (!state.order.name.trim()) {
+      status.innerHTML = alertBox("Podaj imię i nazwisko albo nazwę firmy.", "error");
+      document.getElementById("orderName").focus();
+      return;
+    }
+    if (!/^\S+@\S+\.\S+$/.test(state.order.email.trim())) {
+      status.innerHTML = alertBox("Podaj poprawny adres e-mail.", "error");
+      document.getElementById("orderEmail").focus();
+      return;
+    }
+    if (!privacyAccepted) {
+      status.innerHTML = alertBox("Zaznacz potwierdzenie zapoznania się z polityką prywatności.", "error");
+      document.getElementById("orderPrivacy").focus();
+      return;
+    }
+
+    const originalText = button.textContent;
+    button.disabled = true;
+    button.textContent = "Wysyłanie…";
+    status.innerHTML = alertBox("Wysyłanie wiadomości…", "info");
+
+    try {
+      const response = await fetch("send-order.php", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Requested-With": "Drukulator"
+        },
+        body: JSON.stringify({
+          customer: {
+            name: state.order.name,
+            email: state.order.email,
+            phone: state.order.phone,
+            pickup: state.order.pickup,
+            notes: state.order.notes
+          },
+          cart: state.cart.map(item => ({
+            title: item.title,
+            description: item.description,
+            price: Number(item.price),
+            details: Array.isArray(item.details) ? item.details : []
+          })),
+          privacyAccepted,
+          website
+        })
+      });
+
+      let result = null;
+      try {
+        result = await response.json();
+      } catch {
+        throw new Error("Serwer zwrócił nieprawidłową odpowiedź.");
+      }
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Nie udało się wysłać wiadomości.");
+      }
+
+      status.innerHTML = alertBox(`Wiadomość została wysłana. Numer zgłoszenia: ${result.orderId}`, "success");
+      showToast("Wysłano zamówienie");
+    } catch (error) {
+      status.innerHTML = alertBox(`${error.message || String(error)} Możesz nadal skopiować tekst wiadomości poniżej.`, "error");
+    } finally {
+      button.disabled = false;
+      button.textContent = originalText;
+    }
   }
 
   async function copyText(text) {

@@ -1164,3 +1164,50 @@ body.roulette-open {
     grid-template-columns: 1fr;
   }
 }
+
+
+.order-honeypot {
+  position: absolute !important;
+  left: -10000px !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.privacy-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: .88rem;
+  line-height: 1.45;
+}
+
+.privacy-check input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  flex: 0 0 auto;
+}
+
+.privacy-check a {
+  color: var(--info);
+  font-weight: 700;
+}
+
+.order-send-status {
+  margin-top: 12px;
+}
+
+.order-copy-details {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.order-copy-details > summary {
+  color: var(--muted);
+}
