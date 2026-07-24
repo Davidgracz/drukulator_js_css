@@ -16,7 +16,7 @@
       }
     })();
   </script>
-  <link rel="stylesheet" href="assets/styles.css?v=0.5.0">
+  <link rel="stylesheet" href="assets/styles.css?v=0.5.1">
 </head>
 <body>
   <a class="skip-link" href="#content">Przejdź do kalkulatora</a>
@@ -71,24 +71,24 @@
         <div class="brand-icon">🖨️</div>
         <div>
           <h1>Drukulator</h1>
-          <p id="versionLabel">0.5.0v</p>
+          <p id="versionLabel">0.5.1v</p>
         </div>
       </div>
-
-      <div class="product-search" role="search">
-        <label class="visually-hidden" for="productSearch">Wyszukaj produkt lub usługę</label>
+      <div class="product-search">
+        <label class="visually-hidden" for="productSearch">Opisz, czego potrzebujesz</label>
         <div class="product-search__field">
           <span aria-hidden="true">⌕</span>
           <input
             id="productSearch"
             type="search"
             autocomplete="off"
-            placeholder="Opisz, czego potrzebujesz…"
+            placeholder="Np. wizytówki, wlepki, winietki..."
+            aria-describedby="productSearchHint"
           >
         </div>
+        <small id="productSearchHint" class="muted">Możesz wpisać nazwę produktu albo krótko opisać zamówienie.</small>
         <div id="productSearchResults" class="product-search__results" aria-live="polite"></div>
       </div>
-
       <nav id="navigation" class="navigation" aria-label="Produkty"></nav>
       <div class="sidebar-footer">
         <button class="button secondary full" id="downloadPrices" type="button" disabled>Pobierz prices.json</button>
@@ -166,7 +166,7 @@
   </footer>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script src="js/calculators.js?v=0.5.0"></script>
-  <script src="js/app.js?v=0.5.0"></script>
+  <script src="js/calculators.js?v=0.5.1"></script>
+  <script src="js/app.js?v=0.5.1"></script>
 </body>
 </html>

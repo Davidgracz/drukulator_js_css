@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const VERSION = "0.5.0v";
+  const VERSION = "0.5.1v";
   const C = window.Calculators;
   const content = document.getElementById("content");
   const navigation = document.getElementById("navigation");
@@ -16,8 +16,8 @@
   const productSearchResults = document.getElementById("productSearchResults");
   const themeColorMeta = document.querySelector('meta[name="theme-color"]');
   const THEME_KEY = "drukulator_theme";
-  const PRICE_OVERRIDE_KEY = "drukulator_prices_override_0_5_0";
-  const LEGACY_PRICE_OVERRIDE_KEYS = [];
+  const PRICE_OVERRIDE_KEY = "drukulator_prices_override_0_5_1";
+  const LEGACY_PRICE_OVERRIDE_KEYS = ["drukulator_prices_override_0_5_0", "drukulator_prices_override_0_4_1", "drukulator_prices_override_0_4_0", "drukulator_prices_override_0_3_1", "drukulator_prices_override_0_3_0"];
   const ADMIN_SESSION_KEY = "drukulator_admin_unlocked";
   const ADMIN_PASSWORD_HASH = "76ec9956";
 
@@ -51,19 +51,89 @@
   ];
 
   const PRODUCT_SEARCH_TERMS = {
-    "Wizytówki": ["wizytowki", "wizytowka", "wizyto", "karty biznesowe", "business cards"],
-    "Ulotki": ["ulotki", "ulotka", "flyer", "flyers", "reklama papierowa"],
-    "Folie i banery": ["folie", "folia", "baner", "banery", "owh", "transparentna", "laminat"],
-    "Naklejki": ["naklejki", "naklejka", "wlepki", "wlepka", "etykiety", "etykieta", "sticker"],
-    "Plakaty": ["plakaty", "plakat", "poster", "postery"],
-    "Roll-up": ["rollup", "roll up", "roll-up", "x baner", "x-baner", "scianka reklamowa", "rollup czarny", "standard black", "rollup dwustronny", "podwojny rollup"],
-    "PVC": ["pcv", "pvc", "tablica", "tabliczka", "plyta", "folia na pcv"],
-    "Druk cyfrowy i ksero": ["druk cyfrowy", "ksero", "wydruk", "arkuszowanie", "sra4", "sra3", "winietki", "winietek", "zaproszenia", "bilety", "karteczki", "druk na papierze"],
-    "Koszulki i odzież": ["koszulki", "koszulka", "odziez", "nadruk na koszulce", "czapka", "bluzy", "dtf"],
-    "Oprawa prac": ["oprawa", "bindowanie", "praca dyplomowa", "magisterska", "licencjacka", "spirala"],
-    "Laminowanie": ["laminowanie", "laminat dokumentu", "zalaminowac", "folia laminacyjna"],
-    "Obrazy na płótnie": ["obrazy", "obraz", "plotno", "canvas", "zdjecie na plotnie"]
+    "Wizytówki": [
+      "wizytowki", "wizytowka", "wizytowek", "wizytowke", "wiytowki", "wizytuwki",
+      "karty biznesowe", "karta biznesowa", "business card", "business cards", "karty firmowe",
+      "karta kontaktowa", "dane kontaktowe na karcie", "85x55", "90x50", "soft touch",
+      "wizytowki z folia", "wizytowki foliowane", "wizytowki dwustronne", "wizytowki jednostronne",
+      "wizytowki 24h", "wizytowki cyfrowe", "wizytowki offsetowe"
+    ],
+    "Ulotki": [
+      "ulotki", "ulotka", "ulotek", "ulotke", "flyer", "flyers", "folder reklamowy",
+      "reklama papierowa", "materialy reklamowe", "rozdawane ulotki", "ulotki a6", "ulotki a5",
+      "ulotki a4", "ulotki dl", "ulotki skladane", "ulotki cyfrowe", "ulotki offsetowe"
+    ],
+    "Folie i banery": [
+      "folie", "folia", "folii", "baner", "banery", "banner", "frontlit", "mesh", "siatka mesh",
+      "baner reklamowy", "baner z oczkami", "druk banera", "folia mat", "folia matowa", "folia blysk",
+      "folia blyszczaca", "folia z laminatem", "folia laminowana", "folia owh", "folia owv",
+      "one way vision", "folia transparentna", "folia przezroczysta", "naklejka na witryne",
+      "oklejenie witryny", "grafika na szybe", "druk na folii", "folia samoprzylepna"
+    ],
+    "Naklejki": [
+      "naklejki", "naklejka", "naklejek", "naklejke", "wlepki", "wlepka", "wlepek", "etykiety",
+      "etykieta", "etykiet", "sticker", "stickers", "naklejki laminowane", "etykiety laminowane",
+      "naklejki wycinane", "naklejki ploterowe", "naklejki na rolce", "naklejki na arkuszu",
+      "naklejki produktowe", "etykiety produktowe", "etykiety cenowe", "naklejki z logo",
+      "naklejki okragle", "naklejki prostokatne", "naklejki dowolny ksztalt", "wlepki reklamowe",
+      "naklejki taxi", "magnes taxi"
+    ],
+    "Plakaty": [
+      "plakaty", "plakat", "plakatow", "poster", "postery", "afisz", "afisze", "plakat reklamowy",
+      "plakat a3", "plakat a2", "plakat a1", "plakat a0", "duzy wydruk", "druk wielkoformatowy",
+      "plakat cyfrowy", "plakat offsetowy", "papier plakatowy"
+    ],
+    "Roll-up": [
+      "rollup", "roll up", "roll-up", "rollupy", "rolap", "rolup", "x baner", "x-baner", "x banner",
+      "stojak reklamowy", "system wystawienniczy", "scianka reklamowa", "potykacz reklamowy",
+      "rollup standard", "rollup black", "rollup czarny", "rollup exclusive", "rollup lezka",
+      "rollup dwustronny", "rollup podwojny", "wklad do rollupa", "wymiana wkladu rollup"
+    ],
+    "PVC": [
+      "pcv", "pvc", "plyta pcv", "plyta pvc", "tablica", "tabliczka", "tablice", "szyld", "szyldy",
+      "plansza", "plansze", "druk na plycie", "druk na pcv", "folia na pcv", "folia plus pcv",
+      "tablica reklamowa", "tabliczka informacyjna", "tabliczka firmowa", "sztywna plyta",
+      "pcv 2 mm", "pcv 3 mm", "pcv 4 mm", "pcv 5 mm"
+    ],
+    "Druk cyfrowy i ksero": [
+      "druk cyfrowy", "drukowanie", "wydruk", "wydruki", "ksero", "kopie", "kopiowanie", "skanowanie",
+      "druk dokumentow", "druk a4", "druk a3", "kolor a4", "kolorowy a4", "czarno bialy",
+      "druk dwustronny", "druk jednostronny", "papier kredowy", "papier 130g", "papier 170g",
+      "papier 250g", "papier 300g", "sra4", "sra3", "arkuszowanie", "impozycja", "uzytki na arkuszu",
+      "winietki", "winietka", "winietek", "zaproszenia", "zaproszenie", "bilety", "bilet", "vouchery",
+      "voucher", "kupony", "kupon", "karteczki", "karty menu", "menu restauracyjne", "certyfikaty",
+      "dyplomy", "identyfikatory papierowe", "papier firmowy", "preprint", "druk malego formatu"
+    ],
+    "Koszulki i odzież": [
+      "koszulki", "koszulka", "koszulek", "odziez", "odziezy", "ubrania z nadrukiem", "nadruk na koszulce",
+      "nadruki na odziezy", "dtf", "termotransfer", "bluza", "bluzy", "czapka", "czapki", "torba z nadrukiem",
+      "fartuch z nadrukiem", "odziez firmowa", "koszulka firmowa", "koszulka z logo", "sam nadruk",
+      "dodatkowy nadruk", "nadruk przod", "nadruk tyl"
+    ],
+    "Oprawa prac": [
+      "oprawa", "oprawa prac", "bindowanie", "bindownica", "spirala", "oprawa spiralna", "termobindowanie",
+      "praca dyplomowa", "praca magisterska", "magisterska", "praca licencjacka", "licencjacka",
+      "praca doktorska", "doktorat", "oprawa dokumentu", "oprawa ksiazki", "druk i oprawa",
+      "oprawa miekka", "oprawa twarda"
+    ],
+    "Laminowanie": [
+      "laminowanie", "laminacja", "zalaminowac", "zalaminowanie", "laminat dokumentu", "folia laminacyjna",
+      "laminowanie a4", "laminowanie a3", "laminowanie a5", "laminowanie wizytowki", "ochrona dokumentu",
+      "foliowanie dokumentu", "dokument w folii", "80 mikronow"
+    ],
+    "Obrazy na płótnie": [
+      "obrazy", "obraz", "obrazu", "plotno", "plotnie", "canvas", "fotoobraz", "foto obraz",
+      "zdjecie na plotnie", "fotografia na plotnie", "obraz ze zdjecia", "druk na plotnie", "wydruk na canvas",
+      "obraz na sciane", "portret na plotnie", "obraz panoramiczny", "wlasny rozmiar obrazu"
+    ]
   };
+
+  const SEARCH_STOP_WORDS = new Set([
+    "chce", "chcialbym", "chcialabym", "potrzebuje", "poprosze", "prosze", "mozna", "zrobic",
+    "zamowic", "zamowie", "wycenic", "wycena", "cena", "koszt", "ile", "bedzie", "interesuje",
+    "mnie", "mi", "dla", "na", "do", "od", "z", "ze", "i", "oraz", "albo", "czy", "jak",
+    "szt", "sztuk", "sztuki", "format", "rozmiar", "wymiar", "potrzebny", "potrzebna", "potrzebne"
+  ]);
 
   document.getElementById("versionLabel").textContent = VERSION;
   document.getElementById("menuToggle").addEventListener("click", () => sidebar.classList.toggle("open"));
@@ -137,7 +207,9 @@
   function getProductSearchMatches(query) {
     const normalizedQuery = normalizeSearchText(query);
     if (!normalizedQuery) return [];
-    const queryTokens = normalizedQuery.split(/\s+/).filter(token => token.length > 1);
+    const rawTokens = normalizedQuery.split(/\s+/).filter(token => token.length > 1);
+    const queryTokens = rawTokens.filter(token => !SEARCH_STOP_WORDS.has(token));
+    const meaningfulTokens = queryTokens.length ? queryTokens : rawTokens;
 
     return Object.entries(PRODUCT_SEARCH_TERMS).map(([pageName, terms]) => {
       const normalizedTerms = [pageName, ...terms].map(normalizeSearchText);
@@ -148,7 +220,7 @@
         else if (term.includes(normalizedQuery) || normalizedQuery.includes(term)) score = Math.max(score, 90);
 
         const termTokens = term.split(/\s+/);
-        for (const token of queryTokens) {
+        for (const token of meaningfulTokens) {
           if (term.includes(token)) {
             score += 24;
             continue;
@@ -162,6 +234,18 @@
           if (bestDistance <= allowedDistance) score += 18 - bestDistance * 5;
         }
       }
+
+      const combinedTerms = normalizedTerms.join(" ");
+      const matchedTokenCount = meaningfulTokens.filter(token => {
+        if (combinedTerms.includes(token)) return true;
+        return normalizedTerms.some(term => term.split(/\s+/).some(termToken => {
+          const allowedDistance = token.length >= 8 ? 2 : token.length >= 5 ? 1 : 0;
+          return allowedDistance > 0 && levenshteinDistance(token, termToken) <= allowedDistance;
+        }));
+      }).length;
+
+      if (meaningfulTokens.length > 1 && matchedTokenCount === meaningfulTokens.length) score += 45;
+      else if (matchedTokenCount >= 2) score += matchedTokenCount * 12;
 
       return { pageName, score };
     }).filter(item => item.score > 0).sort((a, b) => b.score - a.score || a.pageName.localeCompare(b.pageName, "pl"));

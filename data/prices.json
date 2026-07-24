@@ -2,8 +2,7 @@
   "meta": {
     "waluta": "PLN",
     "ceny_brutto": true,
-    "vat": 23,
-    "wersja": "0.5.0v"
+    "vat": 23
   },
   "banery": {
     "Frontlit 510g": {
@@ -495,42 +494,6 @@
           }
         ]
       }
-    },
-    "Standard Black (czarny)": {
-      "85 cm": {
-        "progi_ilosciowe": [
-          {
-            "min_szt": 1,
-            "cena_sztuki": 310.0
-          }
-        ]
-      },
-      "100 cm": {
-        "progi_ilosciowe": [
-          {
-            "min_szt": 1,
-            "cena_sztuki": 360.0
-          }
-        ]
-      }
-    },
-    "Dwustronny (podwójny)": {
-      "85 cm": {
-        "progi_ilosciowe": [
-          {
-            "min_szt": 1,
-            "cena_sztuki": 680.0
-          }
-        ]
-      },
-      "100 cm": {
-        "progi_ilosciowe": [
-          {
-            "min_szt": 1,
-            "cena_sztuki": 780.0
-          }
-        ]
-      }
     }
   },
   "ulotki": {
@@ -753,10 +716,9 @@
       },
       "Kolorowy": {
         "1-20": 3.0,
-        "21-50": 2.5,
-        "51-200": 2.0,
-        "201-500": 1.5,
-        "501+": 1.0
+        "21-100": 2.5,
+        "101-500": 2.0,
+        "501+": 1.5
       }
     },
     "ksero_i_druk": {

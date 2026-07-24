@@ -330,30 +330,8 @@
     };
   }
 
-  function getQuantityTier(quantity, tierPrices = null) {
+  function getQuantityTier(quantity) {
     assertPositive(quantity, "Ilość");
-
-    if (tierPrices && typeof tierPrices === "object") {
-      const value = Number(quantity);
-      const parsedTiers = Object.keys(tierPrices).map(key => {
-        const rangeMatch = String(key).match(/^\s*(\d+)\s*-\s*(\d+)\s*$/);
-        if (rangeMatch) {
-          return { key, min: Number(rangeMatch[1]), max: Number(rangeMatch[2]) };
-        }
-
-        const plusMatch = String(key).match(/^\s*(\d+)\s*\+\s*$/);
-        if (plusMatch) {
-          return { key, min: Number(plusMatch[1]), max: Infinity };
-        }
-
-        return null;
-      }).filter(Boolean).sort((a, b) => a.min - b.min || a.max - b.max);
-
-      const selected = parsedTiers.find(tier => value >= tier.min && value <= tier.max);
-      if (selected) return selected.key;
-      throw new Error("Nie znaleziono progu cenowego dla wybranej ilości.");
-    }
-
     if (quantity <= 20) return "1-20";
     if (quantity <= 100) return "21-100";
     if (quantity <= 500) return "101-500";
@@ -369,9 +347,8 @@
       const sideMultiplier = service === "Druk cyfrowy" ? Number(prices.mnozniki_zadruku[sideMode]) : 1;
       const formatMultiplier = Number(prices.mnozniki_formatu[formatName]);
       const printUnits = Number(quantity) * sideMultiplier * formatMultiplier;
-      const tierPrices = servicePrices[colorMode];
-      const tier = getQuantityTier(printUnits, tierPrices);
-      const basePrice = Number(tierPrices[tier]);
+      const tier = getQuantityTier(printUnits);
+      const basePrice = Number(servicePrices[colorMode][tier]);
       const paperSurcharge = Number(prices.doplaty_do_papieru[paperType]);
       const printTotal = basePrice * printUnits;
       const paperUnits = Number(quantity) * formatMultiplier;
@@ -449,9 +426,8 @@
     assertPositive(pagesPerCopy, "Liczba stron");
     assertPositive(copies, "Liczba egzemplarzy");
     const totalPrintedPages = Number(pagesPerCopy) * Number(copies);
-    const tierPrices = prices.druk_cyfrowy_i_ksero.druk_cyfrowy[colorMode];
-    const tier = getQuantityTier(totalPrintedPages, tierPrices);
-    const printPricePerPage = Number(tierPrices[tier]);
+    const tier = getQuantityTier(totalPrintedPages);
+    const printPricePerPage = Number(prices.druk_cyfrowy_i_ksero.druk_cyfrowy[colorMode][tier]);
     const printTotal = totalPrintedPages * printPricePerPage;
     const sheetsPerCopy = sideMode === "Dwustronny" ? Math.ceil(Number(pagesPerCopy) / 2) : Number(pagesPerCopy);
     const totalSheets = sheetsPerCopy * Number(copies);
