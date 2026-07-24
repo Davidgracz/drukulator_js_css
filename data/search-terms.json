@@ -22,8 +22,7 @@
     "wizytowki jednostronne",
     "wizytowki 24h",
     "wizytowki cyfrowe",
-    "wizytowki offsetowe",
-    "wizytowki premium"
+    "wizytowki offsetowe"
   ],
   "Ulotki": [
     "ulotki",
@@ -44,7 +43,7 @@
     "ulotki cyfrowe",
     "ulotki offsetowe"
   ],
-  "Folie i banery": [
+  "Folie i banery 24h": [
     "folie",
     "folia",
     "folii",
@@ -72,7 +71,25 @@
     "oklejenie witryny",
     "grafika na szybe",
     "druk na folii",
-    "folia samoprzylepna"
+    "folia samoprzylepna",
+    "folie i banery 24h",
+    "banery 24h",
+    "folie 24h",
+    "baner powlekany",
+    "baner powlekany 510g",
+    "folia do podswietlen",
+    "folia do podświetleń",
+    "folia podswietlana",
+    "folia podświetlana",
+    "backlit",
+    "backlit film",
+    "folia do kasetonu",
+    "folia do lightboxa",
+    "grafika podswietlana",
+    "folia z transferem",
+    "folia transferowa",
+    "transfer folia",
+    "transfer tape"
   ],
   "Naklejki": [
     "naklejki",
@@ -102,8 +119,7 @@
     "naklejki dowolny ksztalt",
     "wlepki reklamowe",
     "naklejki taxi",
-    "magnes taxi",
-    "numery taxi"
+    "magnes taxi"
   ],
   "Plakaty": [
     "plakaty",
@@ -127,10 +143,12 @@
   "Roll-up": [
     "rollup",
     "roll up",
+    "roll-up",
     "rollupy",
     "rolap",
     "rolup",
     "x baner",
+    "x-baner",
     "x banner",
     "stojak reklamowy",
     "system wystawienniczy",
@@ -261,9 +279,7 @@
     "sam nadruk",
     "dodatkowy nadruk",
     "nadruk przod",
-    "nadruk tyl",
-    "ksozulka",
-    "ksozulki"
+    "nadruk tyl"
   ],
   "Oprawa prac": [
     "oprawa",
@@ -276,10 +292,8 @@
     "praca dyplomowa",
     "praca magisterska",
     "magisterska",
-    "magisterka",
     "praca licencjacka",
     "licencjacka",
-    "llicencjat",
     "praca doktorska",
     "doktorat",
     "oprawa dokumentu",

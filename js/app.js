@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const VERSION = "0.5.4v";
+  const VERSION = "0.5.5v";
   const C = window.Calculators;
   const content = document.getElementById("content");
   const navigation = document.getElementById("navigation");
@@ -16,12 +16,19 @@
   const productSearchResults = document.getElementById("productSearchResults");
   const themeColorMeta = document.querySelector('meta[name="theme-color"]');
   const THEME_KEY = "drukulator_theme";
-  const PRICE_OVERRIDE_KEY = "drukulator_prices_override_0_5_4";
-  const LEGACY_PRICE_OVERRIDE_KEYS = ["drukulator_prices_override_0_5_3", "drukulator_prices_override_0_5_2", "drukulator_prices_override_0_5_1", "drukulator_prices_override_0_5_0", "drukulator_prices_override_0_4_1", "drukulator_prices_override_0_4_0", "drukulator_prices_override_0_3_1", "drukulator_prices_override_0_3_0"];
-  const SEARCH_TERMS_OVERRIDE_KEY = "drukulator_search_terms_override_0_5_4";
-  const LEGACY_SEARCH_TERMS_OVERRIDE_KEYS = ["drukulator_search_terms_override_0_5_3", "drukulator_search_terms_override_0_5_2", "drukulator_search_terms_override_0_5_1"];
+  const PRICE_OVERRIDE_KEY = "drukulator_prices_override_0_5_5";
+  const LEGACY_PRICE_OVERRIDE_KEYS = ["drukulator_prices_override_0_5_4", "drukulator_prices_override_0_5_3", "drukulator_prices_override_0_5_2", "drukulator_prices_override_0_5_1", "drukulator_prices_override_0_5_0", "drukulator_prices_override_0_4_1", "drukulator_prices_override_0_4_0", "drukulator_prices_override_0_3_1", "drukulator_prices_override_0_3_0"];
+  const SEARCH_TERMS_OVERRIDE_KEY = "drukulator_search_terms_override_0_5_5";
+  const LEGACY_SEARCH_TERMS_OVERRIDE_KEYS = ["drukulator_search_terms_override_0_5_4", "drukulator_search_terms_override_0_5_3", "drukulator_search_terms_override_0_5_2", "drukulator_search_terms_override_0_5_1"];
   const ADMIN_SESSION_KEY = "drukulator_admin_unlocked";
   const ADMIN_PASSWORD_HASH = "76ec9956";
+  const ROULETTE_TRIGGER = "we wtorki chodze do kasyna";
+  const ROULETTE_STORAGE_KEY = "drukulator_roulette_0_5_5";
+  const ROULETTE_MAX_DISCOUNT = 20;
+  const ROULETTE_RED_NUMBERS = new Set([
+    1, 3, 5, 7, 9, 12, 14, 16, 18,
+    19, 21, 23, 25, 27, 30, 32, 34, 36
+  ]);
 
   const state = {
     basePrices: null,
@@ -34,7 +41,8 @@
     cart: loadJson("drukulator_cart", []),
     order: loadJson("drukulator_order", {
       name: "", email: "", phone: "", pickup: "Odbiór osobisty", notes: ""
-    })
+    }),
+    roulette: normalizeRouletteState(loadJson(ROULETTE_STORAGE_KEY, null))
   };
 
   const pages = [
@@ -269,16 +277,242 @@
 
     productSearch.addEventListener("input", () => {
       state.searchQuery = productSearch.value;
+      if (isRouletteTrigger(state.searchQuery)) {
+        openRouletteEasterEgg();
+        return;
+      }
       renderNavigation();
     });
 
     productSearch.addEventListener("keydown", event => {
       if (event.key !== "Enter") return;
+      if (isRouletteTrigger(state.searchQuery)) {
+        event.preventDefault();
+        openRouletteEasterEgg();
+        return;
+      }
       const [bestMatch] = getProductSearchMatches(state.searchQuery);
       if (!bestMatch) return;
       event.preventDefault();
       openPageFromSearch(bestMatch.pageName);
     });
+  }
+
+  function isRouletteTrigger(query) {
+    return normalizeSearchText(query) === ROULETTE_TRIGGER;
+  }
+
+  function normalizeRouletteState(saved) {
+    const balance = Number(saved && saved.balance);
+    const lastNumber = Number.isInteger(saved && saved.lastNumber) ? saved.lastNumber : null;
+    const lastColor = ["red", "black", "green"].includes(saved && saved.lastColor) ? saved.lastColor : null;
+    const plays = Math.max(0, Number.parseInt(saved && saved.plays, 10) || 0);
+    return {
+      balance: Number.isFinite(balance) ? Math.max(0, Math.min(ROULETTE_MAX_DISCOUNT, Math.round(balance))) : 5,
+      lastNumber,
+      lastColor,
+      plays
+    };
+  }
+
+  function saveRouletteState() {
+    try {
+      localStorage.setItem(ROULETTE_STORAGE_KEY, JSON.stringify(state.roulette));
+    } catch {
+      // Gra działa również bez pamięci lokalnej.
+    }
+  }
+
+  function openRouletteEasterEgg() {
+    state.searchQuery = "";
+    productSearch.value = "";
+    productSearchResults.innerHTML = "";
+    renderNavigation();
+    sidebar.classList.remove("open");
+
+    let overlay = document.getElementById("rouletteEasterEgg");
+    if (!overlay) {
+      overlay = document.createElement("div");
+      overlay.id = "rouletteEasterEgg";
+      overlay.className = "roulette-overlay";
+      overlay.innerHTML = `
+        <section class="roulette-dialog" role="dialog" aria-modal="true" aria-labelledby="rouletteTitle">
+          <button class="roulette-close" id="rouletteClose" type="button" aria-label="Zamknij ruletkę">×</button>
+          <p class="roulette-kicker">Sekret Druk24</p>
+          <h2 id="rouletteTitle">Wtorkowa ruletka zniżek</h2>
+          <p class="roulette-intro">Każdy żeton to 1% zniżki. Wybierz kolor, ustaw stawkę i zakręć kołem.</p>
+
+          <div class="roulette-balance">
+            <span>Saldo zniżki</span>
+            <strong id="rouletteBalance">5%</strong>
+            <small>Maksymalnie ${ROULETTE_MAX_DISCOUNT}%</small>
+          </div>
+
+          <div class="roulette-wheel-wrap">
+            <div class="roulette-pointer" aria-hidden="true"></div>
+            <div class="roulette-wheel" id="rouletteWheel" aria-hidden="true">
+              <span id="rouletteNumber">?</span>
+            </div>
+          </div>
+
+          <div class="roulette-controls">
+            <div class="field">
+              <label for="rouletteStake">Stawka</label>
+              <select id="rouletteStake"></select>
+            </div>
+            <div class="roulette-colors" role="group" aria-label="Wybierz kolor">
+              <button class="roulette-color red is-selected" type="button" data-roulette-color="red">Czerwone</button>
+              <button class="roulette-color black" type="button" data-roulette-color="black">Czarne</button>
+              <button class="roulette-color green" type="button" data-roulette-color="green">Zero</button>
+            </div>
+            <button class="button full roulette-spin" id="rouletteSpin" type="button">Zakręć</button>
+            <button class="button secondary full hidden" id="rouletteRestart" type="button">Zacznij od 5%</button>
+          </div>
+
+          <div class="roulette-result" id="rouletteResult" aria-live="polite">Wybierz kolor i zakręć kołem.</div>
+          <div class="roulette-footer-actions">
+            <button class="button secondary" id="rouletteCopy" type="button">Kopiuj wynik</button>
+          </div>
+          <p class="roulette-note">Wynik easter egga wymaga potwierdzenia przy składaniu zamówienia.</p>
+        </section>`;
+      document.body.appendChild(overlay);
+      setupRouletteEvents(overlay);
+    }
+
+    overlay.classList.add("is-open");
+    document.body.classList.add("roulette-open");
+    updateRouletteUi();
+    document.getElementById("rouletteClose").focus();
+  }
+
+  function setupRouletteEvents(overlay) {
+    overlay.querySelector("#rouletteClose").addEventListener("click", closeRouletteEasterEgg);
+    overlay.addEventListener("click", event => {
+      if (event.target === overlay) closeRouletteEasterEgg();
+    });
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && overlay.classList.contains("is-open")) closeRouletteEasterEgg();
+    });
+
+    overlay.querySelectorAll("[data-roulette-color]").forEach(button => {
+      button.addEventListener("click", () => {
+        overlay.querySelectorAll("[data-roulette-color]").forEach(item => item.classList.remove("is-selected"));
+        button.classList.add("is-selected");
+      });
+    });
+
+    overlay.querySelector("#rouletteSpin").addEventListener("click", spinRoulette);
+    overlay.querySelector("#rouletteRestart").addEventListener("click", () => {
+      state.roulette = { balance: 5, lastNumber: null, lastColor: null, plays: 0 };
+      saveRouletteState();
+      updateRouletteUi("Nowa runda. Masz 5 żetonów zniżki.");
+    });
+    overlay.querySelector("#rouletteCopy").addEventListener("click", () => {
+      copyText(`Wtorkowa ruletka Druk24 — moje saldo zniżki: ${state.roulette.balance}%`);
+    });
+  }
+
+  function closeRouletteEasterEgg() {
+    const overlay = document.getElementById("rouletteEasterEgg");
+    if (!overlay) return;
+    overlay.classList.remove("is-open");
+    document.body.classList.remove("roulette-open");
+    productSearch.focus();
+  }
+
+  function rouletteColorForNumber(number) {
+    if (number === 0) return "green";
+    return ROULETTE_RED_NUMBERS.has(number) ? "red" : "black";
+  }
+
+  function rouletteColorLabel(color) {
+    return color === "red" ? "czerwone" : color === "black" ? "czarne" : "zero";
+  }
+
+  function randomRouletteNumber() {
+    if (window.crypto && window.crypto.getRandomValues) {
+      const values = new Uint32Array(1);
+      window.crypto.getRandomValues(values);
+      return values[0] % 37;
+    }
+    return Math.floor(Math.random() * 37);
+  }
+
+  function spinRoulette() {
+    const overlay = document.getElementById("rouletteEasterEgg");
+    const spinButton = overlay.querySelector("#rouletteSpin");
+    const wheel = overlay.querySelector("#rouletteWheel");
+    const stake = Number(overlay.querySelector("#rouletteStake").value);
+    const selected = overlay.querySelector("[data-roulette-color].is-selected");
+    const selectedColor = selected ? selected.dataset.rouletteColor : "red";
+
+    if (!Number.isInteger(stake) || stake < 1 || stake > state.roulette.balance) {
+      updateRouletteUi("Wybierz stawkę, którą masz w saldzie.");
+      return;
+    }
+
+    spinButton.disabled = true;
+    wheel.classList.remove("is-spinning");
+    void wheel.offsetWidth;
+    wheel.classList.add("is-spinning");
+    overlay.querySelector("#rouletteResult").textContent = "Koło się kręci...";
+    overlay.querySelector("#rouletteNumber").textContent = "…";
+
+    const number = randomRouletteNumber();
+    const resultColor = rouletteColorForNumber(number);
+
+    window.setTimeout(() => {
+      const won = resultColor === selectedColor;
+      let change = -stake;
+      if (won) {
+        change = selectedColor === "green" ? stake * 5 : stake;
+      }
+
+      state.roulette.balance = Math.max(0, Math.min(ROULETTE_MAX_DISCOUNT, state.roulette.balance + change));
+      state.roulette.lastNumber = number;
+      state.roulette.lastColor = resultColor;
+      state.roulette.plays += 1;
+      saveRouletteState();
+
+      wheel.classList.remove("is-spinning", "result-red", "result-black", "result-green");
+      wheel.classList.add(`result-${resultColor}`);
+      overlay.querySelector("#rouletteNumber").textContent = String(number);
+      spinButton.disabled = false;
+
+      const message = won
+        ? `Wypadło ${number} (${rouletteColorLabel(resultColor)}). Wygrywasz ${change}% zniżki.`
+        : `Wypadło ${number} (${rouletteColorLabel(resultColor)}). Tracisz ${stake}% zniżki.`;
+      updateRouletteUi(message);
+    }, 1350);
+  }
+
+  function updateRouletteUi(message) {
+    const overlay = document.getElementById("rouletteEasterEgg");
+    if (!overlay) return;
+
+    const balance = state.roulette.balance;
+    overlay.querySelector("#rouletteBalance").textContent = `${balance}%`;
+    const stakeSelect = overlay.querySelector("#rouletteStake");
+    const maxStake = Math.min(5, balance);
+    stakeSelect.innerHTML = maxStake > 0
+      ? Array.from({ length: maxStake }, (_, index) => `<option value="${index + 1}">${index + 1}%</option>`).join("")
+      : '<option value="0">Brak żetonów</option>';
+    stakeSelect.disabled = balance <= 0;
+    overlay.querySelector("#rouletteSpin").classList.toggle("hidden", balance <= 0);
+    overlay.querySelector("#rouletteRestart").classList.toggle("hidden", balance > 0);
+
+    if (message) {
+      overlay.querySelector("#rouletteResult").textContent = message;
+    } else if (state.roulette.lastNumber !== null) {
+      overlay.querySelector("#rouletteResult").textContent = `Ostatnio: ${state.roulette.lastNumber} (${rouletteColorLabel(state.roulette.lastColor)}).`;
+      overlay.querySelector("#rouletteNumber").textContent = String(state.roulette.lastNumber);
+      const wheel = overlay.querySelector("#rouletteWheel");
+      wheel.classList.remove("result-red", "result-black", "result-green");
+      wheel.classList.add(`result-${state.roulette.lastColor}`);
+    } else {
+      overlay.querySelector("#rouletteResult").textContent = "Wybierz kolor i zakręć kołem.";
+      overlay.querySelector("#rouletteNumber").textContent = "?";
+    }
   }
 
   function openPageFromSearch(pageName) {

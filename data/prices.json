@@ -825,9 +825,9 @@
       "Ręczne": 0.5
     },
     "arkuszowanie": {
-      "domyslny_spad_mm": 3,
+      "domyslny_spad_mm": 1.5,
       "odstep_miedzy_uzytkami_mm": 0,
-      "margines_arkusza_mm": 3,
+      "margines_arkusza_mm": 1.5,
       "formaty_arkuszy": {
         "SRA4": {
           "szerokosc_mm": 225,
