@@ -637,7 +637,7 @@
     }
   },
   "plakaty": {
-    "Cyfrowy": {
+    "Cyfrowy 24h": {
       "A4": {
         "10": 45,
         "20": 65,
@@ -676,13 +676,127 @@
         "250": 2050
       }
     },
-    "Wielkoformatowy": {
-      "A2": 30,
-      "A1": 55,
-      "A0": 100,
-      "B2": 35,
-      "B1": 65,
-      "B0": 110
+    "Wielkoformatowy 24h": {
+      "A2": {
+        "progi_ilosciowe": [
+          {
+            "min_szt": 1,
+            "cena_sztuki": 65.0
+          },
+          {
+            "min_szt": 2,
+            "cena_sztuki": 55.0
+          },
+          {
+            "min_szt": 5,
+            "cena_sztuki": 50.0
+          },
+          {
+            "min_szt": 11,
+            "cena_sztuki": 45.0
+          }
+        ]
+      },
+      "A1": {
+        "progi_ilosciowe": [
+          {
+            "min_szt": 1,
+            "cena_sztuki": 65.0
+          },
+          {
+            "min_szt": 2,
+            "cena_sztuki": 55.0
+          },
+          {
+            "min_szt": 5,
+            "cena_sztuki": 50.0
+          },
+          {
+            "min_szt": 11,
+            "cena_sztuki": 45.0
+          }
+        ]
+      },
+      "A0": {
+        "progi_ilosciowe": [
+          {
+            "min_szt": 1,
+            "cena_sztuki": 65.0
+          },
+          {
+            "min_szt": 2,
+            "cena_sztuki": 55.0
+          },
+          {
+            "min_szt": 5,
+            "cena_sztuki": 50.0
+          },
+          {
+            "min_szt": 11,
+            "cena_sztuki": 45.0
+          }
+        ]
+      },
+      "B2": {
+        "progi_ilosciowe": [
+          {
+            "min_szt": 1,
+            "cena_sztuki": 65.0
+          },
+          {
+            "min_szt": 2,
+            "cena_sztuki": 55.0
+          },
+          {
+            "min_szt": 5,
+            "cena_sztuki": 50.0
+          },
+          {
+            "min_szt": 11,
+            "cena_sztuki": 45.0
+          }
+        ]
+      },
+      "B1": {
+        "progi_ilosciowe": [
+          {
+            "min_szt": 1,
+            "cena_sztuki": 65.0
+          },
+          {
+            "min_szt": 2,
+            "cena_sztuki": 55.0
+          },
+          {
+            "min_szt": 5,
+            "cena_sztuki": 50.0
+          },
+          {
+            "min_szt": 11,
+            "cena_sztuki": 45.0
+          }
+        ]
+      },
+      "B0": {
+        "progi_ilosciowe": [
+          {
+            "min_szt": 1,
+            "cena_sztuki": 65.0
+          },
+          {
+            "min_szt": 2,
+            "cena_sztuki": 55.0
+          },
+          {
+            "min_szt": 5,
+            "cena_sztuki": 50.0
+          },
+          {
+            "min_szt": 11,
+            "cena_sztuki": 45.0
+          }
+        ]
+      }
     }
   },
   "naklejki": {

@@ -129,7 +129,17 @@
   function calculatePosters(prices, printType, formatName, quantity) {
     assertPositive(quantity, "Ilość");
     const root = prices.plakaty[printType];
-    return round2(printType === "Wielkoformatowy" ? Number(root[formatName]) * Number(quantity) : root[formatName][String(quantity)]);
+    if (!root || !root[formatName]) throw new Error("Brak cennika dla wybranego plakatu.");
+
+    if (printType === "Wielkoformatowy 24h") {
+      const tier = getQuantityUnitPrice(quantity, root[formatName].progi_ilosciowe);
+      const unitPrice = Number(tier.cena_sztuki);
+      return { price: round2(unitPrice * Number(quantity)), unitPrice };
+    }
+
+    const price = root[formatName][String(quantity)];
+    if (price == null) throw new Error("Brak ceny dla wybranego nakładu.");
+    return round2(price);
   }
 
   function getQuantityUnitPrice(quantity, tiers) {

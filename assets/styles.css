@@ -132,6 +132,24 @@ a { color: inherit; }
 }
 .nav-button:hover { background: var(--nav-hover); }
 .nav-button.active { background: var(--nav-active); border-color: var(--nav-active-border); }
+.service-badge-24h {
+  display: inline-block;
+  margin-left: .08em;
+  font-weight: 800;
+  letter-spacing: .03em;
+  background: linear-gradient(90deg, #7eefff 0%, #ffffff 35%, #62f3ff 60%, #dfffff 80%, #7eefff 100%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 10px rgba(126, 239, 255, .18);
+  animation: badge24hFlow 3.2s linear infinite;
+}
+
+@keyframes badge24hFlow {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
 .sidebar-footer { margin-top: auto; padding-top: 18px; }
 .workspace { margin-left: 270px; display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 26px; padding: 28px; }
 .content { min-width: 0; }

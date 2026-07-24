@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const VERSION = "0.5.5v";
+  const VERSION = "0.5.9v";
   const C = window.Calculators;
   const content = document.getElementById("content");
   const navigation = document.getElementById("navigation");
@@ -16,14 +16,14 @@
   const productSearchResults = document.getElementById("productSearchResults");
   const themeColorMeta = document.querySelector('meta[name="theme-color"]');
   const THEME_KEY = "drukulator_theme";
-  const PRICE_OVERRIDE_KEY = "drukulator_prices_override_0_5_5";
-  const LEGACY_PRICE_OVERRIDE_KEYS = ["drukulator_prices_override_0_5_4", "drukulator_prices_override_0_5_3", "drukulator_prices_override_0_5_2", "drukulator_prices_override_0_5_1", "drukulator_prices_override_0_5_0", "drukulator_prices_override_0_4_1", "drukulator_prices_override_0_4_0", "drukulator_prices_override_0_3_1", "drukulator_prices_override_0_3_0"];
-  const SEARCH_TERMS_OVERRIDE_KEY = "drukulator_search_terms_override_0_5_5";
-  const LEGACY_SEARCH_TERMS_OVERRIDE_KEYS = ["drukulator_search_terms_override_0_5_4", "drukulator_search_terms_override_0_5_3", "drukulator_search_terms_override_0_5_2", "drukulator_search_terms_override_0_5_1"];
+  const PRICE_OVERRIDE_KEY = "drukulator_prices_override_0_5_9";
+  const LEGACY_PRICE_OVERRIDE_KEYS = ["drukulator_prices_override_0_5_8", "drukulator_prices_override_0_5_7", "drukulator_prices_override_0_5_6", "drukulator_prices_override_0_5_5", "drukulator_prices_override_0_5_4", "drukulator_prices_override_0_5_3", "drukulator_prices_override_0_5_2", "drukulator_prices_override_0_5_1", "drukulator_prices_override_0_5_0", "drukulator_prices_override_0_4_1", "drukulator_prices_override_0_4_0", "drukulator_prices_override_0_3_1", "drukulator_prices_override_0_3_0"];
+  const SEARCH_TERMS_OVERRIDE_KEY = "drukulator_search_terms_override_0_5_9";
+  const LEGACY_SEARCH_TERMS_OVERRIDE_KEYS = ["drukulator_search_terms_override_0_5_8", "drukulator_search_terms_override_0_5_7", "drukulator_search_terms_override_0_5_6", "drukulator_search_terms_override_0_5_5", "drukulator_search_terms_override_0_5_4", "drukulator_search_terms_override_0_5_3", "drukulator_search_terms_override_0_5_2", "drukulator_search_terms_override_0_5_1"];
   const ADMIN_SESSION_KEY = "drukulator_admin_unlocked";
   const ADMIN_PASSWORD_HASH = "76ec9956";
   const ROULETTE_TRIGGER = "we wtorki chodze do kasyna";
-  const ROULETTE_STORAGE_KEY = "drukulator_roulette_0_5_5";
+  const ROULETTE_STORAGE_KEY = "drukulator_roulette_0_5_9";
   const ROULETTE_MAX_DISCOUNT = 20;
   const ROULETTE_RED_NUMBERS = new Set([
     1, 3, 5, 7, 9, 12, 14, 16, 18,
@@ -47,14 +47,14 @@
 
   const pages = [
     ["Start", renderHome],
-    ["Wizytówki", renderBusinessCards],
-    ["Ulotki", renderFlyers],
+    ["Wizytówki 24h", renderBusinessCards],
+    ["Ulotki 24h", renderFlyers],
+    ["Plakaty 24h", renderPosters],
+    ["Druk cyfrowy 24h", renderDigital],
     ["Folie i banery 24h", renderBanners],
     ["Naklejki", renderStickers],
-    ["Plakaty", renderPosters],
     ["Roll-up", renderRollup],
     ["PCV i pianki", renderPvc],
-    ["Druk cyfrowy i ksero", renderDigital],
     ["Koszulki i odzież", renderApparel],
     ["Oprawa prac", renderBinding],
     ["Laminowanie", renderLamination],
@@ -66,17 +66,17 @@
   const ADMIN_PAGE_NAMES = new Set(["Edycja cen", "Edycja wyszukiwarki"]);
 
   const DEFAULT_PRODUCT_SEARCH_TERMS = {
-    "Wizytówki": [
+    "Wizytówki 24h": [
       "wizytowki", "wizytowka", "wizytowek", "wizytowke", "wiytowki", "wizytuwki",
       "karty biznesowe", "karta biznesowa", "business card", "business cards", "karty firmowe",
       "karta kontaktowa", "dane kontaktowe na karcie", "85x55", "90x50", "soft touch",
       "wizytowki z folia", "wizytowki foliowane", "wizytowki dwustronne", "wizytowki jednostronne",
-      "wizytowki 24h", "wizytowki cyfrowe", "wizytowki offsetowe"
+      "wizytowki 24h", "wizytówki 24h", "wizytowki cyfrowe", "wizytowki offsetowe"
     ],
-    "Ulotki": [
+    "Ulotki 24h": [
       "ulotki", "ulotka", "ulotek", "ulotke", "flyer", "flyers", "folder reklamowy",
       "reklama papierowa", "materialy reklamowe", "rozdawane ulotki", "ulotki a6", "ulotki a5",
-      "ulotki a4", "ulotki dl", "ulotki skladane", "ulotki cyfrowe", "ulotki offsetowe"
+      "ulotki a4", "ulotki dl", "ulotki 24h", "ulotka 24h", "ulotki ekspres", "ulotki skladane", "ulotki cyfrowe", "ulotki offsetowe"
     ],
     "Folie i banery 24h": [
       "folie", "folia", "folii", "baner", "banery", "banner", "frontlit", "mesh", "siatka mesh",
@@ -96,8 +96,9 @@
       "naklejki okragle", "naklejki prostokatne", "naklejki dowolny ksztalt", "wlepki reklamowe",
       "naklejki taxi", "magnes taxi"
     ],
-    "Plakaty": [
+    "Plakaty 24h": [
       "plakaty", "plakat", "plakatow", "poster", "postery", "afisz", "afisze", "plakat reklamowy",
+      "plakaty 24h", "plakat 24h", "plakat ekspres", "plakat na jutro", "wielkoformatowy 24h",
       "plakat a3", "plakat a2", "plakat a1", "plakat a0", "duzy wydruk", "druk wielkoformatowy",
       "plakat cyfrowy", "plakat offsetowy", "papier plakatowy"
     ],
@@ -116,9 +117,9 @@
       "plansza a3", "plansza a2", "plansza a1", "plansza b2", "plansza b1", "plansza b0",
       "lekka plansza", "plansza wystawowa", "plansza prezentacyjna", "wydruk na piance"
     ],
-    "Druk cyfrowy i ksero": [
+    "Druk cyfrowy 24h": [
       "druk cyfrowy", "drukowanie", "wydruk", "wydruki", "ksero", "kopie", "kopiowanie", "skanowanie",
-      "druk dokumentow", "druk a4", "druk a3", "kolor a4", "kolorowy a4", "czarno bialy",
+      "druk dokumentow", "druk cyfrowy 24h", "druk 24h", "wydruk 24h", "druk a4", "druk a3", "kolor a4", "kolorowy a4", "czarno bialy",
       "druk dwustronny", "druk jednostronny", "papier kredowy", "papier 130g", "papier 170g",
       "papier 250g", "papier 300g", "sra4", "sra3", "arkuszowanie", "impozycja", "uzytki na arkuszu",
       "winietki", "winietka", "winietek", "zaproszenia", "zaproszenie", "bilety", "bilet", "vouchery",
@@ -538,7 +539,7 @@
 
     productSearchResults.innerHTML = matches.slice(0, 3).map((match, index) => `
       <button class="product-search__result${index === 0 ? " is-best" : ""}" type="button" data-search-page="${esc(match.pageName)}">
-        ${index === 0 ? "Najlepsze dopasowanie: " : ""}${esc(match.pageName)}
+        ${index === 0 ? "Najlepsze dopasowanie: " : ""}${format24hLabel(match.pageName)}
       </button>`).join("");
 
     productSearchResults.querySelectorAll("[data-search-page]").forEach(button => {
@@ -607,15 +608,30 @@
   }
 
   function migratePrices(pricesToMigrate) {
-    const banners = pricesToMigrate && pricesToMigrate.banery;
-    if (!banners || !banners["Frontlit 510g"]) return pricesToMigrate;
+    if (!pricesToMigrate || typeof pricesToMigrate !== "object") return pricesToMigrate;
 
-    const legacyBanner = banners["Frontlit 510g"];
-    banners["Baner powlekany 510g"] = mergeDeep(
-      banners["Baner powlekany 510g"] || {},
-      legacyBanner
-    );
-    delete banners["Frontlit 510g"];
+    const banners = pricesToMigrate.banery;
+    if (banners && banners["Frontlit 510g"]) {
+      const legacyBanner = banners["Frontlit 510g"];
+      banners["Baner powlekany 510g"] = mergeDeep(
+        banners["Baner powlekany 510g"] || {},
+        legacyBanner
+      );
+      delete banners["Frontlit 510g"];
+    }
+
+    const posters = pricesToMigrate.plakaty;
+    if (posters) {
+      if (posters["Cyfrowy"]) {
+        posters["Cyfrowy 24h"] = mergeDeep(
+          posters["Cyfrowy 24h"] || {},
+          posters["Cyfrowy"]
+        );
+      }
+      delete posters["Cyfrowy"];
+      delete posters["Wielkoformatowy"];
+    }
+
     return pricesToMigrate;
   }
 
@@ -678,7 +694,7 @@
     const result = {};
     const categories = Object.keys(fallback || DEFAULT_PRODUCT_SEARCH_TERMS);
     categories.forEach(category => {
-      const categoryAliases = { "Folie i banery 24h": ["Folie i banery"] };
+      const categoryAliases = { "Folie i banery 24h": ["Folie i banery"], "Plakaty 24h": ["Plakaty"], "Wizytówki 24h": ["Wizytówki"], "Ulotki 24h": ["Ulotki"], "Druk cyfrowy 24h": ["Druk cyfrowy i ksero"] };
       const alias = (categoryAliases[category] || []).find(name => Array.isArray(source && source[name]));
       const sourceItems = Array.isArray(source && source[category])
         ? source[category]
@@ -752,6 +768,10 @@
     document.getElementById("quoteArea").innerHTML = alertBox(error.message || String(error), "error");
   }
 
+  function format24hLabel(text) {
+    return esc(text).replace(/(24h)/gi, '<span class="service-badge-24h">$1</span>');
+  }
+
   function renderNavigation() {
     const matches = getProductSearchMatches(state.searchQuery);
     const matchedPages = new Set(matches.slice(0, 3).map(item => item.pageName));
@@ -763,7 +783,7 @@
       if (ADMIN_PAGE_NAMES.has(name)) classes.push("admin-nav");
       if (hasSearch && matchedPages.has(name)) classes.push("search-match");
       if (hasSearch && !matchedPages.has(name) && name !== "Start" && !ADMIN_PAGE_NAMES.has(name)) classes.push("search-dim");
-      return `<button class="${classes.join(" ")}" data-page="${esc(name)}">${esc(name)}</button>`;
+      return `<button class="${classes.join(" ")}" data-page="${esc(name)}">${format24hLabel(name)}</button>`;
     }).join("");
 
     renderProductSearchResults(matches);
@@ -921,13 +941,13 @@
       meta: "Ustawienia ogólne",
       banery: "Folie i banery 24h",
       pvc: "PCV i pianki",
-      wizytowki: "Wizytówki",
+      wizytowki: "Wizytówki 24h",
       papier_firmowy: "Papier firmowy",
       rollup: "Roll-up i X-baner",
-      ulotki: "Ulotki",
-      plakaty: "Plakaty",
+      ulotki: "Ulotki 24h",
+      plakaty: "Plakaty 24h",
       naklejki: "Naklejki i etykiety",
-      druk_cyfrowy_i_ksero: "Druk cyfrowy i ksero",
+      druk_cyfrowy_i_ksero: "Druk cyfrowy 24h",
       odziez_z_nadrukiem: "Koszulki i odzież",
       oprawa_prac: "Oprawa prac",
       laminowanie: "Laminowanie",
@@ -1227,7 +1247,7 @@
 
   function renderBusinessCards() {
     const p = state.prices.wizytowki;
-    content.innerHTML = `${header("Wizytówki")}<div class="card"><div class="form-grid">
+    content.innerHTML = `${header("Wizytówki 24h")}<div class="card"><div class="form-grid">
       <div class="field half"><label>Format</label><select id="bcFormat">${options(p.formaty)}</select></div>
       <div class="field half"><label>Rodzaj druku</label><select id="bcPrint">${options(["Cyfrowy 24h", "Offsetowy"])}</select></div>
       <div class="field half"><label>Wykończenie</label><select id="bcFinish"></select></div>
@@ -1250,13 +1270,13 @@
     }); refresh();
     document.getElementById("calculate").addEventListener("click", () => { try {
       const price = C.calculateBusinessCards(state.prices, print.value, finish.value, Number(qty.value), sides.value);
-      showQuote({ title: "Wizytówki", description: `${value("bcFormat")}, druk ${print.value.toLowerCase()}, ${finish.value}, ${sides.value.toLowerCase()}, ${qty.value} szt.`, price, details: [["Format", value("bcFormat")], ["Nakład", `${qty.value} szt.`]] });
+      showQuote({ title: "Wizytówki 24h", description: `${value("bcFormat")}, druk ${print.value.toLowerCase()}, ${finish.value}, ${sides.value.toLowerCase()}, ${qty.value} szt.`, price, details: [["Format", value("bcFormat")], ["Nakład", `${qty.value} szt.`]] });
     } catch (e) { setResultError(e); } });
   }
 
   function renderFlyers() {
     const root = state.prices.ulotki;
-    content.innerHTML = `${header("Ulotki", "Papier 130 g, kolor dwustronny")}<div class="card"><div class="form-grid">
+    content.innerHTML = `${header("Ulotki 24h", "Papier 130 g, kolor dwustronny")}<div class="card"><div class="form-grid">
       <div class="field half"><label>Rodzaj druku</label><select id="flyPrint">${options(Object.keys(root))}</select></div>
       <div class="field half"><label>Rodzaj ulotki</label><select id="flyVariant"></select></div>
       <div class="field half"><label>Format</label><select id="flyFormat"></select></div>
@@ -1269,7 +1289,7 @@
     print.addEventListener("change", refreshVariants); variant.addEventListener("change", refreshFormats); format.addEventListener("change", refreshQty); refreshVariants();
     document.getElementById("calculate").addEventListener("click", () => { try {
       const price = C.calculateFlyers(state.prices, print.value, variant.value, format.value, Number(qty.value));
-      showQuote({ title: "Ulotki", description: `${print.value}, ${variant.value}, format ${format.value}, ${qty.value} szt.`, price, details: [["Papier", "130 g"], ["Zadruk", "Kolor dwustronny"]] });
+      showQuote({ title: "Ulotki 24h", description: `${print.value}, ${variant.value}, format ${format.value}, ${qty.value} szt.`, price, details: [["Papier", "130 g"], ["Zadruk", "Kolor dwustronny"]] });
     } catch (e) { setResultError(e); } });
   }
 
@@ -1356,22 +1376,59 @@
 
   function renderPosters() {
     const root = state.prices.plakaty;
-    content.innerHTML = `${header("Plakaty")}<div class="card"><div class="form-grid">
+    content.innerHTML = `${header("Plakaty 24h")}<div class="card"><div class="form-grid">
       <div class="field half"><label>Rodzaj druku</label><select id="posterPrint">${options(Object.keys(root))}</select></div>
       <div class="field half"><label>Format</label><select id="posterFormat"></select></div>
       <div class="field"><label id="posterQtyLabel">Nakład</label><span id="posterQtyWrap"></span></div>
-    </div><div class="actions"><button class="button" id="calculate">Oblicz cenę</button></div></div><div id="quoteArea"></div>`;
-    const print = document.getElementById("posterPrint"), format = document.getElementById("posterFormat"), wrap = document.getElementById("posterQtyWrap");
-    function refreshFormats() { format.innerHTML = options(Object.keys(root[print.value])); refreshQty(); }
-    function refreshQty() {
-      if (print.value === "Wielkoformatowy") wrap.innerHTML = `<input id="posterQty" type="number" min="1" step="1" value="1">`;
-      else wrap.innerHTML = `<select id="posterQty">${options(Object.keys(root[print.value][format.value]))}</select>`;
+    </div><div id="posterInfo"></div><div class="actions"><button class="button" id="calculate">Oblicz cenę</button></div></div><div id="quoteArea"></div>`;
+    const print = document.getElementById("posterPrint");
+    const format = document.getElementById("posterFormat");
+    const wrap = document.getElementById("posterQtyWrap");
+    const info = document.getElementById("posterInfo");
+
+    function refreshFormats() {
+      format.innerHTML = options(Object.keys(root[print.value]));
+      refreshQty();
     }
-    print.addEventListener("change", refreshFormats); format.addEventListener("change", refreshQty); refreshFormats();
+
+    function refreshQty() {
+      if (print.value === "Wielkoformatowy 24h") {
+        wrap.innerHTML = `<input id="posterQty" type="number" min="1" step="1" value="1">`;
+        const tiers = root[print.value][format.value].progi_ilosciowe || [];
+        const rows = tiers.map((tier, index) => {
+          const next = tiers[index + 1];
+          const range = next
+            ? (Number(tier.min_szt) === Number(next.min_szt) - 1
+              ? `${tier.min_szt} szt.`
+              : `${tier.min_szt}–${Number(next.min_szt) - 1} szt.`)
+            : `od ${tier.min_szt} szt.`;
+          return `<tr><td>${esc(range)}</td><td>${money(tier.cena_sztuki)} zł/szt.</td></tr>`;
+        }).join("");
+        info.innerHTML = `<details><summary>Cennik wielkoformatowy 24h</summary><table class="tier-table"><thead><tr><th>Nakład</th><th>Cena jednostkowa</th></tr></thead><tbody>${rows}</tbody></table></details>`;
+      } else {
+        wrap.innerHTML = `<select id="posterQty">${options(Object.keys(root[print.value][format.value]))}</select>`;
+        info.innerHTML = "";
+      }
+    }
+
+    print.addEventListener("change", refreshFormats);
+    format.addEventListener("change", refreshQty);
+    refreshFormats();
+
     document.getElementById("calculate").addEventListener("click", () => { try {
-      const q = numberValue("posterQty"), price = C.calculatePosters(state.prices, print.value, format.value, q);
-      const paper = print.value === "Wielkoformatowy" ? "Papier satynowy 135 g" : "Papier 170 g, kolor jednostronny";
-      showQuote({ title: "Plakaty", description: `${print.value}, format ${format.value}, ${q} szt.`, price, details: [["Materiał", paper]] });
+      const q = numberValue("posterQty");
+      const result = C.calculatePosters(state.prices, print.value, format.value, q);
+      const paper = print.value === "Wielkoformatowy 24h" ? "Papier satynowy 135 g" : "Papier 170 g, kolor jednostronny";
+      const details = [["Materiał", paper]];
+      if (result && typeof result === "object") {
+        details.push(["Cena jednostkowa", `${money(result.unitPrice)} zł`]);
+      }
+      showQuote({
+        title: "Plakaty 24h",
+        description: `${print.value}, format ${format.value}, ${q} szt.`,
+        price: result && typeof result === "object" ? result.price : result,
+        details
+      });
     } catch (e) { setResultError(e); } });
   }
 
@@ -1502,8 +1559,8 @@
   function renderDigital() {
     const root = state.prices.druk_cyfrowy_i_ksero;
     const imposition = root.arkuszowanie || {};
-    const services = ["Arkuszowanie SRA4/SRA3", "Druk cyfrowy", "Ksero i druk", "Ksero książki", "Dla studentów", "Skanowanie"];
-    content.innerHTML = `${header("Druk cyfrowy, ksero i arkuszowanie")}<div class="card"><div class="form-grid">
+    const services = ["Druk cyfrowy", "Ksero i druk", "Ksero książki", "Dla studentów", "Skanowanie", "Arkuszowanie SRA4/SRA3"];
+    content.innerHTML = `${header("Druk cyfrowy 24h, ksero i arkuszowanie")}<div class="card"><div class="form-grid">
       <div class="field"><label>Rodzaj usługi</label><select id="digService">${options(services)}</select></div>
       <div id="digitalDynamic" class="field" style="display:contents"></div>
     </div><div id="digitalInfo"></div><div class="actions"><button class="button" id="calculate">Oblicz cenę</button></div></div><div id="quoteArea"></div>`;
