@@ -6,7 +6,17 @@
   <meta name="theme-color" content="#ffffff">
   <meta name="description" content="Kalkulator cen druku Druk24">
   <title>Drukulator — Kalkulator Druku</title>
-  <link rel="stylesheet" href="assets/styles.css?v=0.4.0">
+  <script>
+    (() => {
+      try {
+        const savedTheme = localStorage.getItem("drukulator_theme");
+        document.documentElement.dataset.theme = savedTheme === "dark" ? "dark" : "light";
+      } catch {
+        document.documentElement.dataset.theme = "light";
+      }
+    })();
+  </script>
+  <link rel="stylesheet" href="assets/styles.css?v=0.4.1">
 </head>
 <body>
   <a class="skip-link" href="#content">Przejdź do kalkulatora</a>
@@ -18,18 +28,31 @@
         <img src="/wp-content/uploads/2022/10/druk24-logo.svg" alt="Druk24 Szczecin">
       </a>
 
-      <button
-        class="druk24-site-menu-toggle"
-        id="siteMenuToggle"
-        type="button"
-        aria-label="Otwórz menu strony"
-        aria-controls="siteNavigation"
-        aria-expanded="false"
-      >
-        <span></span>
-        <span></span>
-        <span></span>
-      </button>
+      <div class="druk24-site-actions">
+        <button
+          class="theme-toggle"
+          id="themeToggle"
+          type="button"
+          aria-label="Włącz tryb ciemny"
+          aria-pressed="false"
+        >
+          <span class="theme-toggle__icon" aria-hidden="true">🌙</span>
+          <span class="theme-toggle__label">Tryb ciemny</span>
+        </button>
+
+        <button
+          class="druk24-site-menu-toggle"
+          id="siteMenuToggle"
+          type="button"
+          aria-label="Otwórz menu strony"
+          aria-controls="siteNavigation"
+          aria-expanded="false"
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
 
       <nav class="druk24-site-navigation" id="siteNavigation" aria-label="Menu główne">
         <a href="/">Start</a>
@@ -48,7 +71,7 @@
         <div class="brand-icon">🖨️</div>
         <div>
           <h1>Drukulator</h1>
-          <p id="versionLabel">0.4.0v</p>
+          <p id="versionLabel">0.4.2v</p>
         </div>
       </div>
       <nav id="navigation" class="navigation" aria-label="Produkty"></nav>
@@ -128,7 +151,7 @@
   </footer>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script src="js/calculators.js?v=0.4.0"></script>
-  <script src="js/app.js?v=0.4.0"></script>
+  <script src="js/calculators.js?v=0.4.1"></script>
+  <script src="js/app.js?v=0.4.1"></script>
 </body>
 </html>

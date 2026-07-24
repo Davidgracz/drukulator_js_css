@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const VERSION = "0.4.0v";
+  const VERSION = "0.4.2v";
   const C = window.Calculators;
   const content = document.getElementById("content");
   const navigation = document.getElementById("navigation");
@@ -11,8 +11,11 @@
   const downloadPricesButton = document.getElementById("downloadPrices");
   const siteMenuToggle = document.getElementById("siteMenuToggle");
   const siteNavigation = document.getElementById("siteNavigation");
-  const PRICE_OVERRIDE_KEY = "drukulator_prices_override_0_4_0";
-  const LEGACY_PRICE_OVERRIDE_KEYS = ["drukulator_prices_override_0_3_1", "drukulator_prices_override_0_3_0"];
+  const themeToggle = document.getElementById("themeToggle");
+  const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+  const THEME_KEY = "drukulator_theme";
+  const PRICE_OVERRIDE_KEY = "drukulator_prices_override_0_4_1";
+  const LEGACY_PRICE_OVERRIDE_KEYS = ["drukulator_prices_override_0_4_0", "drukulator_prices_override_0_3_1", "drukulator_prices_override_0_3_0"];
   const ADMIN_SESSION_KEY = "drukulator_admin_unlocked";
   const ADMIN_PASSWORD_HASH = "76ec9956";
 
@@ -67,7 +70,49 @@
       siteMenuToggle.setAttribute("aria-expanded", "false");
     });
   }
+  setupThemeToggle();
   downloadPricesButton.addEventListener("click", downloadPricesJson);
+
+  function setupThemeToggle() {
+    const currentTheme = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+    applyTheme(currentTheme, false);
+
+    if (!themeToggle) return;
+
+    themeToggle.addEventListener("click", () => {
+      const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+      applyTheme(nextTheme, true);
+    });
+  }
+
+  function applyTheme(theme, persist) {
+    const isDark = theme === "dark";
+    document.documentElement.dataset.theme = isDark ? "dark" : "light";
+
+    if (themeToggle) {
+      const icon = themeToggle.querySelector(".theme-toggle__icon");
+      const label = themeToggle.querySelector(".theme-toggle__label");
+      const nextLabel = isDark ? "Tryb jasny" : "Tryb ciemny";
+
+      if (icon) icon.textContent = isDark ? "☀️" : "🌙";
+      if (label) label.textContent = nextLabel;
+      themeToggle.setAttribute("aria-label", isDark ? "Włącz tryb jasny" : "Włącz tryb ciemny");
+      themeToggle.setAttribute("aria-pressed", String(isDark));
+      themeToggle.title = isDark ? "Włącz tryb jasny" : "Włącz tryb ciemny";
+    }
+
+    if (themeColorMeta) {
+      themeColorMeta.setAttribute("content", isDark ? "#050505" : "#ffffff");
+    }
+
+    if (persist) {
+      try {
+        localStorage.setItem(THEME_KEY, isDark ? "dark" : "light");
+      } catch {
+        // Motyw działa również bez pamięci lokalnej.
+      }
+    }
+  }
 
   boot();
 
